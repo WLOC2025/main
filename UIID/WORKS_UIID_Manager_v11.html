@@ -1,0 +1,3555 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UIID Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<!-- ★ v11_final 패치: PDF 한글 폰트 임베드용 fontkit (pdf-lib 표준폰트는 한글 미지원) -->
+<script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f0f4ff;--bg2:#ffffff;--bg3:#e8edf8;
+  --accent:#4a6cf7;--accent2:#7c5cbf;--gold:#c8960a;
+  --text:#1a1d2e;--text2:#555a7a;--text3:#9ba3c0;
+  --border:#d0d4e8;--border2:#b8bfe0;
+  --success:#2e9e5b;--danger:#e53935;
+  --radius:12px;--shadow:0 4px 24px rgba(0,0,0,0.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:8px;flex-wrap:wrap;}
+.logo{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:600;color:var(--accent);letter-spacing:2px;flex-shrink:0;}
+.logo span{color:var(--gold);}
+.header-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.h-stat{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:4px 11px;display:flex;align-items:center;gap:5px;font-size:.75rem;}
+.h-stat-n{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);font-size:.92rem;}
+.h-stat-l{color:var(--text2);}
+.hdr-btn{background:none;border:none;font-size:1.3rem;cursor:pointer;padding:4px 6px;border-radius:8px;transition:transform .2s;line-height:1;}
+.hdr-btn:hover{transform:scale(1.2);}
+.hdr-link{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:4px 11px;font-size:.75rem;color:var(--text2);cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:4px;}
+.hdr-link:hover{border-color:var(--accent);color:var(--accent);}
+.db-dot{width:7px;height:7px;border-radius:50%;background:#aaa;display:inline-block;transition:background .3s;}
+
+.color-panel{position:fixed;top:56px;right:14px;background:#fff;border:1px solid #ddd;border-radius:18px;padding:18px;width:300px;box-shadow:0 12px 48px rgba(0,0,0,.25);z-index:299;display:none;max-height:85vh;overflow-y:auto;}
+.color-panel.open{display:block;}
+.cp-title{font-size:.68rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#555;margin-bottom:8px;}
+.preset-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:6px;}
+.preset-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+.swatch{width:32px;height:32px;border-radius:50%;border:2px solid transparent;transition:transform .18s;}
+.swatch:hover{transform:scale(1.15);}
+.preset-lbl{font-size:.52rem;color:#888;text-align:center;line-height:1.3;}
+.direct-row{display:flex;align-items:center;gap:8px;margin:10px 0;}
+.direct-row label{font-size:.72rem;color:#666;flex-shrink:0;}
+input[type="color"]{width:40px;height:30px;border-radius:6px;border:1px solid #ccc;cursor:pointer;padding:2px;}
+.hex-in{flex:1;background:#f5f5f5;border:1px solid #ddd;border-radius:7px;color:#333;font-family:'JetBrains Mono',monospace;font-size:.8rem;padding:5px 8px;outline:none;}
+.apply-btn{padding:6px 12px;border:none;border-radius:7px;background:var(--accent);color:white;font-family:inherit;font-size:.78rem;font-weight:700;cursor:pointer;}
+hr.cdiv{border:none;border-top:1px solid #eee;margin:10px 0;}
+
+.settings-panel{position:fixed;top:56px;right:14px;background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:20px;width:290px;box-shadow:0 12px 48px rgba(0,0,0,.5);z-index:298;display:none;}
+.settings-panel.open{display:block;}
+.sp-title{font-size:.9rem;font-weight:700;color:var(--accent);margin-bottom:14px;}
+.sp-lbl{font-size:.68rem;letter-spacing:1px;text-transform:uppercase;color:var(--text2);margin-bottom:7px;}
+.sp-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.87rem;padding:8px 11px;outline:none;margin-bottom:6px;}
+.sp-btn{width:100%;padding:8px;border:none;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;margin-bottom:5px;}
+.sp-primary{background:var(--accent);color:white;}
+.sp-danger{background:transparent;color:var(--danger);border:1px solid var(--danger);}
+.sp-danger:hover{background:var(--danger);color:white;}
+
+main{max-width:1100px;margin:0 auto;padding:22px 16px 80px;}
+.sec-title{font-size:.67rem;letter-spacing:3px;text-transform:uppercase;color:var(--text2);margin-bottom:11px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:20px;box-shadow:var(--shadow);}
+.card-title{font-size:.95rem;font-weight:700;color:var(--accent);margin-bottom:16px;}
+
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:14px;}
+.fg{display:flex;flex-direction:column;gap:5px;}
+.fg.full{grid-column:1/-1;}
+label.fl{font-size:.67rem;letter-spacing:1px;text-transform:uppercase;color:var(--text2);}
+label .req{color:var(--gold);margin-left:2px;}
+.field-wrap{display:flex;flex-direction:column;gap:5px;}
+select,input[type="text"],input[type="password"],input[type="number"]{
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:inherit;font-size:.87rem;padding:9px 12px;
+  outline:none;width:100%;transition:border-color .2s;
+}
+select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(74,108,247,.12);}
+select{appearance:none;-webkit-appearance:none;}
+.custom-row{display:none;margin-top:4px;}
+.custom-row.show{display:block;}
+
+/* 공동저자 */
+.ca-fields{margin-top:10px;display:flex;flex-direction:column;gap:7px;}
+.ca-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:grid;grid-template-columns:22px 1fr 1fr auto;gap:8px;align-items:center;}
+.ca-num{font-family:'JetBrains Mono',monospace;font-size:.8rem;font-weight:700;color:var(--accent);text-align:center;}
+.ca-type-btn{padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text2);white-space:nowrap;transition:all .15s;}
+.ca-type-btn.human{background:#f0eeff;color:#4a3ab0;border-color:#c4b8f8;}
+.ca-type-btn.ai{background:#e6f1fb;color:#185fa5;border-color:#85b7eb;}
+/* 레코드 공동저자 목록 */
+.ca-list{margin-top:7px;border-top:1px solid var(--border);padding-top:7px;display:flex;flex-direction:column;gap:4px;}
+.ca-row{display:flex;align-items:center;gap:8px;font-size:.71rem;}
+.ca-row-num{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);min-width:16px;}
+.ca-row-id{font-family:'JetBrains Mono',monospace;color:var(--gold);min-width:80px;}
+.ca-row-name{color:var(--text);flex:1;}
+.ca-row-type{padding:1px 6px;border-radius:4px;font-size:.62rem;font-weight:700;}
+.ca-row-type.human{background:#f0eeff;color:#4a3ab0;}
+.ca-row-type.ai{background:#e6f1fb;color:#185fa5;}
+
+.prev-wrap{position:relative;margin:14px 0;}
+.prev-box{background:var(--bg3);border:1px solid var(--accent);border-radius:10px;padding:13px 64px 13px 15px;min-height:54px;}
+.prev-lbl{font-size:.63rem;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;}
+.prev-code{font-family:'JetBrains Mono',monospace;font-size:.87rem;color:var(--gold);word-break:break-all;line-height:1.6;}
+.prev-code .pt{color:var(--accent);}
+.prev-code .sep{color:var(--text2);}
+.prev-code .hh{color:var(--success);}
+.prev-code .pe{color:var(--accent2);}
+.p-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--accent2);color:white;border:none;border-radius:7px;padding:5px 11px;font-weight:700;font-size:.82rem;cursor:pointer;letter-spacing:1px;}
+.p-btn:hover{background:#9066f0;}
+
+.check-bar{display:flex;align-items:center;gap:8px;margin:8px 0 4px;flex-wrap:wrap;}
+.cbadge{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:.73rem;font-weight:700;}
+.cb-ready{background:#e8eeff;color:#3a4fd4;border:1px solid #a5b4fc;}
+.cb-ok{background:#d4f8e8;color:#1a6e3d;border:1px solid #a3e8c4;}
+.cb-dup{background:#fde8e8;color:#b91c1c;border:1px solid #fca5a5;}
+.cb-chk{background:#fff8e1;color:#92620a;border:1px solid #fcd34d;}
+.check-btn{background:var(--accent);color:white;border:none;border-radius:7px;padding:5px 13px;font-size:.76rem;font-weight:700;cursor:pointer;}
+.check-btn:hover{background:#5577ee;}
+.notice-box{border-radius:10px;padding:10px 14px;margin-top:6px;font-size:.76rem;display:none;}
+.notice-box.show{display:block;}
+.notice-ok{background:#e8eeff;border:1px solid #a5b4fc;color:#3730a3;}
+.notice-dup{background:#fde8e8;border:1px solid #fca5a5;color:#b91c1c;}
+.dup-warn{background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:9px 13px;font-size:.76rem;color:#7d5a00;margin-top:6px;display:none;}
+.dup-warn.show{display:block;}
+
+.btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.btn{padding:9px 20px;border-radius:8px;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;border:none;letter-spacing:.4px;transition:all .18s;}
+.btn-p{background:var(--accent);color:white;}
+.btn-p:hover{background:#5577ee;}
+.btn-s{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.btn-s:hover{border-color:var(--accent);color:var(--accent);}
+
+.search-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.search-bar input{flex:1;min-width:150px;}
+.bar-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:inherit;font-size:.8rem;padding:9px 13px;cursor:pointer;white-space:nowrap;}
+.bar-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+.rec-list{display:flex;flex-direction:column;gap:10px;}
+.rec{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;transition:border-color .2s;}
+.rec:hover{border-color:var(--accent);}
+.rec-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;}
+.rec-uiid{font-family:'JetBrains Mono',monospace;font-size:.77rem;color:var(--gold);word-break:break-all;flex:1;}
+.rec-acts{display:flex;gap:5px;flex-shrink:0;}
+.ico-btn{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;padding:4px 8px;font-size:.75rem;transition:all .18s;}
+.ico-btn:hover{border-color:var(--accent);color:var(--accent);}
+.ico-btn.del:hover{border-color:var(--danger);color:var(--danger);}
+.rec-meta{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;}
+.chip{font-size:.67rem;color:var(--text2);background:var(--bg3);border-radius:4px;padding:2px 7px;}
+.chip span{color:var(--text);}
+.date-info{font-size:.67rem;color:var(--text2);margin-top:6px;}
+.p-badge{background:var(--accent2);color:white;border-radius:4px;padding:1px 5px;font-size:.63rem;font-weight:700;margin-left:4px;}
+.empty-msg{text-align:center;padding:40px;color:var(--text2);}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:none;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:min(960px,96vw);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 16px 60px rgba(0,0,0,.5);}
+.modal-hdr{padding:13px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.modal-ttl{font-size:.92rem;font-weight:700;color:var(--accent);}
+.modal-hdr-acts{display:flex;gap:7px;}
+.modal-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:1rem;padding:3px 7px;border-radius:6px;}
+.modal-close:hover{background:var(--bg3);}
+.modal-body{overflow-y:auto;flex:1;}
+.exp-table{width:100%;border-collapse:collapse;}
+.exp-table th{background:var(--bg3);color:var(--text2);font-size:.67rem;letter-spacing:1px;text-transform:uppercase;padding:9px 11px;text-align:left;cursor:pointer;border-bottom:1px solid var(--border);position:sticky;top:0;}
+.exp-table th:hover{color:var(--accent);}
+.exp-table td{padding:9px 11px;border-bottom:1px solid var(--border);font-size:.79rem;}
+.exp-table tr:hover td{background:rgba(74,108,247,.04);}
+.uiid-cell{font-family:'JetBrains Mono',monospace;font-size:.71rem;color:var(--gold);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.act-cell{display:flex;gap:4px;}
+
+.secret-box{background:var(--bg2);border:1px solid var(--accent2);border-radius:16px;padding:24px;width:min(460px,92vw);box-shadow:0 12px 48px rgba(167,139,250,.3);}
+.secret-ttl{font-size:.93rem;font-weight:700;color:var(--accent2);margin-bottom:14px;}
+.s-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.87rem;padding:10px 12px;outline:none;margin-bottom:9px;}
+.s-input:focus{border-color:var(--accent2);}
+textarea.s-input{resize:vertical;min-height:90px;}
+.s-btns{display:flex;gap:7px;justify-content:flex-end;}
+.s-btn{padding:8px 18px;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;border:none;}
+.s-ok{background:var(--accent2);color:white;}
+.s-cancel{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--success);color:#0a1a0a;padding:10px 24px;border-radius:10px;font-size:.83rem;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:9999;white-space:nowrap;}
+.dn-btn{flex:1;padding:7px 4px;border:1px solid #ddd;border-radius:8px;background:#f8f8f8;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .18s;}
+.dn-btn:hover{border-color:#6c8cff;background:#e8eeff;color:#3a4fd4;}
+.tgt-btns{display:flex;gap:5px;margin-bottom:4px;}
+.tgt-btn{flex:1;padding:7px 2px;border:2px solid #ddd;border-radius:8px;background:#f8f8f8;font-family:inherit;font-size:.68rem;font-weight:600;color:#666;cursor:pointer;transition:all .18s;text-align:center;line-height:1.4;}
+.tgt-btn:hover{border-color:#6c8cff;color:#3a4fd4;}
+.tgt-btn.active{border-color:#4a6cf7;background:#4a6cf7;color:white;}
+.toast.show{opacity:1;}
+
+/* ══ 드롭존 ══ */
+.drop-zone{border:2px dashed var(--accent);border-radius:12px;padding:16px;text-align:center;cursor:pointer;background:var(--bg3);position:relative;margin-bottom:14px;transition:all .2s;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent2);background:rgba(124,92,191,.07);}
+.drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-zone-icon{font-size:1.6rem;margin-bottom:4px;}
+.drop-zone-text{font-size:.78rem;color:var(--text2);}
+.drop-zone-text b{color:var(--accent);}
+.file-loaded-bar{background:#d4f8e8;border:1px solid #a3e8c4;border-radius:8px;padding:8px 12px;font-size:.76rem;color:#1a6e3d;display:none;margin-bottom:12px;align-items:center;gap:8px;flex-wrap:wrap;}
+.file-loaded-bar.show{display:flex;}
+.flb-name{font-family:'JetBrains Mono',monospace;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.flb-clear{background:none;border:none;color:#1a6e3d;cursor:pointer;font-size:.9rem;padding:0 4px;}
+/* ══ Tools ══ */
+.tools-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:20px;box-shadow:var(--shadow);}
+.tools-title{font-size:.95rem;font-weight:700;color:var(--accent);margin-bottom:14px;}
+.tools-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+.tool-tab{padding:7px 16px;border-radius:8px;font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:all .18s;}
+.tool-tab.active{background:var(--accent);color:white;border-color:var(--accent);}
+.tool-pane{display:none;}
+.tool-pane.active{display:block;}
+.tool-label{font-size:.67rem;letter-spacing:1px;text-transform:uppercase;color:var(--text2);margin-bottom:6px;}
+.tool-out{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.8rem;padding:9px 12px;outline:none;}
+.tool-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+.tool-btn{background:var(--accent);color:white;border:none;border-radius:8px;padding:9px 16px;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .18s;}
+.tool-btn:hover{background:#5577ee;}
+.tool-btn.sec{background:var(--accent2);}
+.tool-btn.sec:hover{background:#9066f0;}
+.tool-btn.gray{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.tool-btn.gray:hover{border-color:var(--accent);color:var(--accent);}
+.sha-12{font-size:.72rem;color:var(--accent2);font-family:'JetBrains Mono',monospace;margin-top:5px;font-weight:700;}
+.sha-compare-result{border-radius:8px;padding:10px 13px;font-size:.78rem;margin-top:8px;display:none;}
+.sha-compare-result.show{display:block;}
+.sha-match{background:#d4f8e8;border:1px solid #a3e8c4;color:#1a6e3d;}
+.sha-nomatch{background:#fde8e8;border:1px solid #fca5a5;color:#b91c1c;}
+.sha-file-info{font-size:.7rem;color:var(--text2);margin:5px 0;font-family:'JetBrains Mono',monospace;}
+/* ══ Identify ══ */
+.identify-section{background:var(--bg2);border:2px solid var(--accent2);border-radius:var(--radius);padding:22px;margin-bottom:20px;box-shadow:0 4px 24px rgba(124,92,191,.12);}
+.identify-title{font-size:.95rem;font-weight:700;color:var(--accent2);margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+.id-input-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.id-input{flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--accent2);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.8rem;padding:10px 12px;outline:none;}
+.id-btn{background:var(--accent2);color:white;border:none;border-radius:8px;padding:10px 18px;font-family:inherit;font-size:.83rem;font-weight:700;cursor:pointer;}
+.id-btn:hover{background:#9066f0;}
+.id-clear-btn{background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-family:inherit;font-size:.83rem;cursor:pointer;}
+.id-result{display:none;}
+.id-result.show{display:block;}
+.id-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin-bottom:12px;}
+.id-field-card{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
+.id-field-label{font-size:.6rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:3px;}
+.id-field-val{font-family:'JetBrains Mono',monospace;font-size:.86rem;font-weight:700;color:var(--gold);word-break:break-all;}
+.id-field-desc{font-size:.65rem;color:var(--text2);margin-top:3px;}
+.id-status-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;}
+.id-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:.73rem;font-weight:700;}
+.id-badge-hash-ok,.id-badge-local-ok,.id-badge-global-ok{background:#d4f8e8;color:#1a6e3d;border:1px solid #a3e8c4;}
+.id-badge-hash-no,.id-badge-local-no{background:#fde8e8;color:#b91c1c;border:1px solid #fca5a5;}
+.id-badge-global-no{background:#fff3cd;color:#7d5a00;border:1px solid #ffc107;}
+.id-detail-box{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;font-size:.77rem;line-height:1.9;margin-bottom:10px;}
+.id-detail-box .hl{color:var(--accent);font-weight:700;}
+.id-sha-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;padding-top:10px;border-top:1px solid var(--border);}
+.id-sha-label{font-size:.67rem;letter-spacing:1px;text-transform:uppercase;color:var(--text2);white-space:nowrap;}
+.id-sha-val{font-size:.76rem;color:var(--accent2);flex:1;word-break:break-all;}
+
+/* ══ 원클릭 통합 ══ */
+.oneclick-section{background:linear-gradient(135deg,#f0f4ff 0%,#e8eeff 100%);border:2px solid var(--accent);border-radius:16px;padding:22px;margin-bottom:20px;box-shadow:0 4px 24px rgba(74,108,247,0.13);}
+.oneclick-title{font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.oneclick-desc{font-size:.78rem;color:var(--text2);margin-bottom:16px;line-height:1.7;}
+.oneclick-steps{display:flex;align-items:center;gap:0;margin-bottom:18px;flex-wrap:wrap;}
+.oc-step{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:80px;}
+.oc-step-icon{font-size:1.3rem;}
+.oc-step-label{font-size:.63rem;color:var(--text2);text-align:center;line-height:1.3;font-weight:500;}
+.oc-arrow{color:var(--accent);font-size:1.1rem;margin:0 2px;padding-bottom:18px;}
+.oneclick-drop{border:2px dashed var(--accent);border-radius:12px;padding:18px;text-align:center;cursor:pointer;background:rgba(255,255,255,0.7);position:relative;margin-bottom:12px;transition:all .2s;}
+.oneclick-drop:hover,.oneclick-drop.drag-over{border-color:var(--accent2);background:rgba(124,92,191,.07);}
+.oneclick-drop input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.oc-loaded{background:#e8eeff;border:1px solid #a5b4fc;border-radius:8px;padding:8px 12px;font-size:.76rem;color:#3730a3;display:none;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.oc-loaded.show{display:flex;}
+.oc-loaded-name{font-family:'JetBrains Mono',monospace;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-oneclick{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:white;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-oneclick:hover{background:#3355dd;transform:translateY(-1px);box-shadow:0 6px 20px rgba(74,108,247,.35);}
+.btn-oneclick:active{transform:translateY(0);}
+.btn-oneclick:disabled{background:#aaa;cursor:not-allowed;transform:none;box-shadow:none;}
+.oc-progress{margin-top:12px;display:none;}
+.oc-progress.show{display:block;}
+.oc-step-list{display:flex;flex-direction:column;gap:6px;}
+.oc-step-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:.78rem;transition:all .3s;}
+.oc-step-item.done{background:#d4f8e8;border-color:#a3e8c4;color:#1a6e3d;}
+.oc-step-item.active{background:#e8eeff;border-color:#a5b4fc;color:#3730a3;}
+.oc-step-item.error{background:#fde8e8;border-color:#fca5a5;color:#b91c1c;}
+.oc-step-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;}
+.oc-step-item.done .oc-step-dot{background:#1a6e3d;color:white;}
+.oc-step-item.active .oc-step-dot{background:#3730a3;color:white;}
+.oc-step-item.error .oc-step-dot{background:#b91c1c;color:white;}
+.oc-step-item.wait .oc-step-dot{background:#ccc;color:#666;}
+.oc-final{margin-top:10px;padding:14px;border-radius:10px;display:none;font-size:.82rem;line-height:1.8;}
+.oc-final.show{display:block;}
+.oc-final.ok{background:#d4f8e8;border:1px solid #a3e8c4;color:#1a6e3d;}
+.oc-final.err{background:#fde8e8;border:1px solid #fca5a5;color:#b91c1c;}
+
+/* ══ 방식B·C·검증 공통 ══ */
+.stamp-drop{border:2px dashed var(--accent2);border-radius:12px;padding:20px;text-align:center;cursor:pointer;background:var(--bg3);position:relative;margin-bottom:12px;transition:all .2s;}
+.stamp-drop:hover,.stamp-drop.drag-over{border-color:var(--accent);background:rgba(74,108,247,.07);}
+.stamp-drop input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.stamp-drop-icon{font-size:1.8rem;margin-bottom:4px;}
+.stamp-drop-text{font-size:.78rem;color:var(--text2);}
+.stamp-loaded{background:#e8eeff;border:1px solid #a5b4fc;border-radius:8px;padding:8px 12px;font-size:.76rem;color:#3730a3;margin-bottom:10px;display:none;align-items:center;gap:8px;flex-wrap:wrap;}
+.stamp-loaded.show{display:flex;}
+.stamp-loaded-name{font-family:'JetBrains Mono',monospace;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stamp-result{border-radius:10px;padding:12px 15px;margin-top:10px;font-size:.78rem;display:none;}
+.stamp-result.show{display:block;}
+.stamp-ok{background:#d4f8e8;border:1px solid #a3e8c4;color:#1a6e3d;}
+.stamp-err{background:#fde8e8;border:1px solid #fca5a5;color:#b91c1c;}
+.stamp-warn{background:#fff8e1;border:1px solid #fcd34d;color:#7d5a00;}
+.stamp-info{background:#e8eeff;border:1px solid #a5b4fc;color:#3730a3;}
+.verify-match{background:#d4f8e8;border:2px solid #a3e8c4;border-radius:10px;padding:14px;color:#1a6e3d;font-size:.82rem;margin-top:10px;display:none;}
+.verify-match.show{display:block;}
+.verify-fail{background:#fde8e8;border:2px solid #fca5a5;border-radius:10px;padding:14px;color:#b91c1c;font-size:.82rem;margin-top:10px;display:none;}
+.verify-fail.show{display:block;}
+.cert-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:10px 0;}
+.cert-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;}
+.cert-card-label{font-size:.6rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:2px;}
+.cert-card-val{font-family:'JetBrains Mono',monospace;font-size:.8rem;font-weight:700;color:var(--gold);word-break:break-all;}
+
+/* ── Parent UIID ── */
+.parent-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:.72rem;color:var(--text2);line-height:1.8}
+.parent-box b{color:var(--accent2);font-family:'JetBrains Mono',monospace;font-size:.68rem}
+.ud-rec-item{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:5px}
+.ud-rec-latest{border-color:var(--teal);background:rgba(29,158,117,.07)}
+.ud-rec-v{font-size:.6rem;font-weight:700;color:var(--text2);margin-bottom:2px}
+.ud-rec-uiid{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--accent2);word-break:break-all;line-height:1.4}
+/* ★ _UD 드롭존 강조 */
+.ud-dropzone-wrap{border:2.5px dashed var(--accent);border-radius:10px;padding:13px 12px;background:linear-gradient(135deg,rgba(74,108,247,.07),rgba(124,92,191,.05));position:relative;cursor:pointer;transition:all .2s;box-shadow:inset 0 0 0 3px rgba(74,108,247,.08);}
+.ud-dropzone-wrap:hover{border-color:var(--accent2);background:linear-gradient(135deg,rgba(74,108,247,.13),rgba(124,92,191,.1));}
+.ud-dropzone-label{font-size:.7rem;font-weight:700;color:var(--accent);letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+
+@media(max-width:600px){
+  .form-grid{grid-template-columns:1fr;}
+  .fg.full{grid-column:span 1;}
+  .ca-item{grid-template-columns:20px 1fr;}
+  .ca-type-btn{grid-column:1/-1;}
+  .color-panel,.settings-panel{right:6px;left:6px;width:auto;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">UIID <span>Manager</span></div>
+  <div class="header-right">
+    <div class="h-stat"><span class="h-stat-n" id="sTot">0</span><span class="h-stat-l">Total</span></div>
+    <div class="h-stat"><span class="h-stat-n" id="sToday">0</span><span class="h-stat-l">Today</span></div>
+    <div class="h-stat"><span class="h-stat-n" id="sType">0</span><span class="h-stat-l">Types</span></div>
+    <div class="h-stat" style="cursor:default">
+      <span class="db-dot" id="dbDot"></span>
+      <span class="h-stat-l" id="dbLabel">DB...</span>
+    </div>
+    <a class="hdr-link" href="UIID_Manual.html" target="_blank">📖 설명서</a>
+    <a class="hdr-link" href="UIID_Registry.html" target="_blank">🌐 Registry ↗</a>
+    <button class="hdr-btn" id="paletteBtn" onclick="togglePanel('color')" title="배경색">🎨</button>
+    <button class="hdr-btn" id="settingsBtn" onclick="togglePanel('settings')" title="설정">⚙️</button>
+  </div>
+</header>
+
+<div class="color-panel" id="colorPanel">
+  <!-- 낮/밤 빠른 선택 -->
+  <div class="cp-title">☀️ 낮 / 🌙 밤</div>
+  <div style="display:flex;gap:6px;margin-bottom:12px;">
+    <button class="dn-btn" onclick="applyDayNight('day')">☀️ 낮 모드</button>
+    <button class="dn-btn" onclick="applyDayNight('night')">🌙 밤 모드</button>
+  </div>
+  <hr class="cdiv">
+  <!-- 4개 대상 버튼 -->
+  <div class="cp-title">색상 적용 대상</div>
+  <div class="tgt-btns">
+    <button class="tgt-btn active" id="tgt-0" onclick="selectTgt(0)">전체<br>배경색</button>
+    <button class="tgt-btn" id="tgt-1" onclick="selectTgt(1)">메인<br>바탕화면</button>
+    <button class="tgt-btn" id="tgt-2" onclick="selectTgt(2)">중간<br>바탕화면</button>
+    <button class="tgt-btn" id="tgt-3" onclick="selectTgt(3)">항목<br>바탕화면</button>
+  </div>
+  <hr class="cdiv">
+  <!-- 프리셋 -->
+  <div class="cp-title" id="presetTitle">전체 배경색 프리셋</div>
+  <div class="preset-grid" id="pgFull"></div>
+  <hr class="cdiv">
+  <!-- 직접 입력 -->
+  <div class="cp-title">직접 입력</div>
+  <div class="direct-row">
+    <label>Color</label>
+    <input type="color" id="colorPicker" value="#f0f4ff" oninput="syncHex(this.value)">
+    <input type="text" class="hex-in" id="hexIn" value="#f0f4ff" placeholder="#RRGGBB" maxlength="7" oninput="syncPicker(this.value)">
+    <button class="apply-btn" onclick="applyCustomColor()">Apply</button>
+  </div>
+</div>
+
+<div class="settings-panel" id="settingsPanel">
+  <div class="sp-title">⚙️ Settings</div>
+  <div class="sp-lbl">🔐 Password</div>
+  <div id="pwStatus" style="font-size:.74rem;color:var(--text2);margin-bottom:7px;"></div>
+  <input type="password" class="sp-input" id="spPw1" placeholder="New password">
+  <input type="password" class="sp-input" id="spPw2" placeholder="Confirm password">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+    <span style="font-size:.72rem;color:var(--text2);">🕐 Unlock</span>
+    <input type="number" class="sp-input" id="spUnlockMin" min="1" max="480" placeholder="30" style="width:70px;margin:0;text-align:center;">
+    <span style="font-size:.72rem;color:var(--text2);">min</span>
+  </div>
+  <button class="sp-btn sp-primary" onclick="savePw()">Save Password</button>
+  <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">
+  <div class="sp-lbl">📤 Export</div>
+  <button class="sp-btn sp-primary" onclick="exportJSON()">Export as JSON</button>
+  <button class="sp-btn sp-primary" onclick="exportCSV()">Export as CSV</button>
+  <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">
+  <div class="sp-lbl">🗑️ Reset</div>
+  <button class="sp-btn sp-danger" onclick="clearAll()">Delete All Data</button>
+</div>
+
+<div class="modal-bg" id="explorerModal" onclick="if(event.target===this)closeModal('explorerModal')">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-ttl">📂 All Records Explorer</div>
+      <div class="modal-hdr-acts">
+        <button class="bar-btn" onclick="exportJSON()" style="font-size:.75rem;padding:5px 10px;">📤 JSON</button>
+        <button class="bar-btn" onclick="exportCSV()" style="font-size:.75rem;padding:5px 10px;">📤 CSV</button>
+        <button class="modal-close" onclick="closeModal('explorerModal')">✕ Close</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <table class="exp-table">
+        <thead><tr>
+          <th onclick="sortBy('title')">Title <span id="si-title">↕</span></th>
+          <th onclick="sortBy('creator')">Creator <span id="si-creator">↕</span></th>
+          <th onclick="sortBy('ftype')">Type <span id="si-ftype">↕</span></th>
+          <th onclick="sortBy('country')">Country <span id="si-country">↕</span></th>
+          <th onclick="sortBy('verify')">Verify <span id="si-verify">↕</span></th>
+          <th onclick="sortBy('inputDate')">Date <span id="si-inputDate">↓</span></th>
+          <th>UIID</th>
+          <th>관리</th>
+        </tr></thead>
+        <tbody id="expBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="secretPwModal">
+  <div class="secret-box">
+    <div class="secret-ttl">🔐 Secret Page</div>
+    <div id="pwMsg" style="font-size:.8rem;color:var(--text2);margin-bottom:10px;">Enter your password</div>
+    <input type="password" class="s-input" id="pwInput" placeholder="Password..." onkeydown="if(event.key==='Enter')confirmPw()">
+    <div class="s-btns">
+      <button class="s-btn s-cancel" onclick="closeModal('secretPwModal')">Cancel</button>
+      <button class="s-btn s-ok" onclick="confirmPw()">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="secretContentModal">
+  <div class="secret-box" style="width:min(500px,94vw);">
+    <div class="secret-ttl">🔐 Memo <span style="font-size:.72rem;color:var(--text2);" id="secRecTitle"></span></div>
+    <textarea class="s-input" id="secContent" placeholder="Enter secret memo..." rows="7"></textarea>
+    <div class="s-btns">
+      <button class="s-btn s-cancel" onclick="closeModal('secretContentModal')">Close</button>
+      <button class="s-btn s-ok" onclick="saveSecret()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<main>
+  <!-- ══ 원클릭 통합 ══ -->
+  <div class="sec-title">▸ One-Click — UIID 생성 + 스탬프 한 번에</div>
+  <div class="oneclick-section">
+    <div class="oneclick-title">⚡ 원클릭 UIID 스탬프</div>
+    <div class="oneclick-desc">
+      파일을 선택하고 버튼 하나만 누르면 — UIID 생성 · 레지스트리 등록 · 파일 스탬프 · 다운로드가 자동으로 이루어집니다.<br>
+      완성된 파일을 이메일 · 카페 · 유튜브 등 필요한 곳에 자유롭게 업로드하세요 ^^
+    </div>
+    <div class="oneclick-steps">
+      <div class="oc-step"><div class="oc-step-icon">📁</div><div class="oc-step-label">파일<br>선택</div></div>
+      <div class="oc-arrow">→</div>
+      <div class="oc-step"><div class="oc-step-icon">🔑</div><div class="oc-step-label">UIID<br>생성</div></div>
+      <div class="oc-arrow">→</div>
+      <div class="oc-step"><div class="oc-step-icon">🌐</div><div class="oc-step-label">레지스트리<br>등록</div></div>
+      <div class="oc-arrow">→</div>
+      <div class="oc-step"><div class="oc-step-icon">📎</div><div class="oc-step-label">스탬프<br>삽입</div></div>
+      <div class="oc-arrow">→</div>
+      <div class="oc-step"><div class="oc-step-icon">⬇️</div><div class="oc-step-label">완성 파일<br>다운로드</div></div>
+      <div class="oc-arrow">→</div>
+      <div class="oc-step"><div class="oc-step-icon">🚀</div><div class="oc-step-label">자유롭게<br>업로드</div></div>
+    </div>
+    <div class="oneclick-drop" id="ocDrop" ondragover="ocDragOver(event)" ondragleave="ocDragLeave()" ondrop="ocDropFile(event)">
+      <input type="file" id="ocFileInput" onchange="ocLoadFile(this)">
+      <div style="font-size:1.8rem;margin-bottom:4px;">📁</div>
+      <div class="drop-zone-text">파일을 드래그하거나 <b>클릭</b>해서 선택<br><span style="font-size:.7rem;">TXT · HTML · PNG · JPG · WEBP · PDF → 스탬프 / 기타 모든 파일 → ZIP 포장</span></div>
+    </div>
+    <div class="oc-loaded" id="ocLoaded">
+      <span class="oc-loaded-name" id="ocFileName">—</span>
+      <span style="font-size:.72rem;" id="ocFileSize"></span>
+      <span style="font-size:.72rem;font-family:'JetBrains Mono',monospace;color:#3730a3;" id="ocFileSha"></span>
+    </div>
+    <button class="btn-oneclick" id="ocBtn" onclick="doOneClick()" disabled>
+      ⚡ UIID 생성 + 스탬프 + 다운로드
+    </button>
+    <div class="oc-progress" id="ocProgress">
+      <div class="oc-step-list" style="margin-top:10px;">
+        <div class="oc-step-item wait" id="ocS1"><div class="oc-step-dot">1</div><span id="ocS1txt">UIID 생성 대기 중...</span></div>
+        <div class="oc-step-item wait" id="ocS2"><div class="oc-step-dot">2</div><span id="ocS2txt">레지스트리 등록 대기 중...</span></div>
+        <div class="oc-step-item wait" id="ocS3"><div class="oc-step-dot">3</div><span id="ocS3txt">파일 스탬프 대기 중...</span></div>
+        <div class="oc-step-item wait" id="ocS4"><div class="oc-step-dot">4</div><span id="ocS4txt">다운로드 대기 중...</span></div>
+      </div>
+    </div>
+    <div class="oc-final" id="ocFinal"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">✦ Create ✦ UIID 생성 &amp; 등록 Register UIID</div>
+
+    <!-- 파일 드롭존 -->
+    <div class="drop-zone" id="dropZone" ondragover="dzDragOver(event)" ondragleave="dzDragLeave()" ondrop="dzDrop(event)">
+      <input type="file" id="dropFileInput" onchange="dzLoad(this.files[0])">
+      <div class="drop-zone-icon">📂</div>
+      <div class="drop-zone-text"><b>작품 파일을 드래그&드롭</b> 하거나 클릭하세요<br><span style="font-size:.7rem;">제목·파일유형·SHA-256 자동 입력</span></div>
+    </div>
+    <div class="file-loaded-bar" id="fileLoadedBar">
+      <span>✅</span>
+      <span class="flb-name" id="flbName">—</span>
+      <span id="flbSize" style="font-size:.7rem;"></span>
+      <span id="flbHash" style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:#185fa5;"></span>
+      <button class="flb-clear" onclick="dzClear()" title="파일 해제">✕</button>
+    </div>
+
+    <div class="form-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="fg">
+        <label class="fl">Creator Class <span class="req">*</span></label>
+        <div class="field-wrap">
+          <select id="creator" onchange="toggleCustom('creator');saveForm();updatePrev()">
+            <option value="HOC">HOC — Human+OHo</option>
+            <option value="HUM">HUM — Personal</option>
+            <option value="OHO">OHO — OHo(AI)</option>
+            <option value="ORG">ORG — Organization</option>
+            <option value="ENT">ENT — Enterprise</option>
+            <option value="GOV">GOV — Government</option>
+            <option value="EDU">EDU — Education</option>
+            <option value="MED">MED — Medical</option>
+            <option value="NGO">NGO — Non-Profit</option>
+            <option value="LAB">LAB — Laboratory</option>
+            <option value="SYS">SYS — System(Auto)</option>
+            <option value="CUSTOM">Custom input...</option>
+          </select>
+          <div class="custom-row" id="creator-custom">
+            <input type="text" id="creatorC" placeholder="Creator 코드 입력" maxlength="10" oninput="saveForm();updatePrev()">
+          </div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Creator USER ID <span class="req">*</span></label>
+        <div class="field-wrap">
+          <select id="userId" onchange="toggleCustom('userId');saveForm();updatePrev()">
+            <option value="bestsmileman">bestsmileman</option>
+            <option value="coplace">coplace</option>
+            <option value="copa21">copa21</option>
+            <option value="CUSTOM">Custom input...</option>
+          </select>
+          <div class="custom-row" id="userId-custom">
+            <input type="text" id="userIdC" placeholder="최대 8자" maxlength="8" oninput="saveForm();updatePrev()">
+          </div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Creator AI ID</label>
+        <div class="field-wrap">
+          <select id="aiCode" onchange="toggleCustom('aiCode');saveForm();updatePrev()">
+            <option value="000">000 — Self-made</option>
+            <option value="CLAUDX789">CLAUDX789 — Claude (OHo)</option>
+            <option value="GROKX123">GROKX123 — Grok</option>
+            <option value="GPT4X001">GPT4X001 — GPT-4</option>
+            <option value="GEMIX001">GEMIX001 — Gemini</option>
+            <option value="CLA">CLA — Claude (구)</option>
+            <option value="GPT">GPT — GPT (구)</option>
+            <option value="MYP">MYP — MyPro</option>
+            <option value="CUSTOM">Custom input...</option>
+          </select>
+          <div class="custom-row" id="aiCode-custom">
+            <input type="text" id="aiCodeC" placeholder="최대 9자" maxlength="9" oninput="saveForm();updatePrev()">
+          </div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Country <span class="req">*</span></label>
+        <div class="field-wrap">
+          <select id="country" onchange="toggleCustom('country');saveForm();updatePrev()">
+            <option value="KR">KR — Korea</option>
+            <option value="US">US — USA</option>
+            <option value="JP">JP — Japan</option>
+            <option value="CN">CN — China</option>
+            <option value="GB">GB — UK</option>
+            <option value="DE">DE — Germany</option>
+            <option value="FR">FR — France</option>
+            <option value="CA">CA — Canada</option>
+            <option value="AU">AU — Australia</option>
+            <option value="SG">SG — Singapore</option>
+            <option value="CUSTOM">Custom input...</option>
+          </select>
+          <div class="custom-row" id="country-custom">
+            <input type="text" id="countryC" placeholder="2자 코드" maxlength="2" oninput="saveForm();updatePrev()">
+          </div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">File Type <span class="req">*</span></label>
+        <div class="field-wrap">
+          <select id="ftype" onchange="toggleCustom('ftype');saveForm();updatePrev()">
+            <option value="TXT">TXT — Text</option>
+            <option value="DOCX">DOCX — Word Doc</option>
+            <option value="PDF">PDF — PDF</option>
+            <option value="XLSX">XLSX — Spreadsheet</option>
+            <option value="PPTX">PPTX — Presentation</option>
+            <option value="IMG">IMG — Image</option>
+            <option value="VID">VID — Video</option>
+            <option value="AUD">AUD — Audio</option>
+            <option value="CODE">CODE — Source Code</option>
+            <option value="CHAT">CHAT — Chat Log</option>
+            <option value="IDEA">IDEA — Idea</option>
+            <option value="RPT">RPT — Report</option>
+            <option value="CUSTOM">Custom input...</option>
+          </select>
+          <div class="custom-row" id="ftype-custom">
+            <input type="text" id="ftypeC" placeholder="유형 코드" maxlength="6" oninput="saveForm();updatePrev()">
+          </div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Verify</label>
+        <select id="verify" onchange="saveForm();updatePrev()">
+          <option value="V">V — Verified</option>
+          <option value="U">U — Unverified</option>
+          <option value="R">R — Under review</option>
+          <option value="D">D — Draft</option>
+        </select>
+      </div>
+
+      <div class="fg full">
+        <label class="fl">Title</label>
+        <input type="text" id="docTitle" placeholder="Title input" oninput="saveForm();updatePrev()">
+      </div>
+
+      <div class="fg full">
+        <label class="fl">Co-Authors (C숫자) — 숫자 입력 시 입력란 자동 생성</label>
+        <input type="number" id="coAuthorCount" placeholder="0" min="0" max="20" value="0" oninput="renderCoAuthFields();saveForm();updatePrev()">
+        <div class="ca-fields" id="caFields" style="display:none;"></div>
+      </div>
+
+      <!-- ★ Parent UIID 필드 -->
+      <div class="fg full">
+        <label class="fl">🌳 Parent UIID — 이 파일이 어디서 왔나요? (계보 기록)</label>
+        <div style="display:flex;gap:6px;align-items:flex-start">
+          <input type="text" id="parentUiid" placeholder="부모 위드 코드 입력 (선택사항) — _UD 파일 업로드 시 자동 입력"
+            style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:.72rem;font-family:'JetBrains Mono',monospace;outline:none"
+            oninput="saveForm()">
+          <button class="btn btn-s" onclick="clearParent()" title="초기화" style="height:34px;padding:0 10px;flex-shrink:0">✕</button>
+        </div>
+        <div style="font-size:.68rem;color:var(--text2);margin-top:4px;" id="parentStatus"></div>
+      </div>
+
+      <!-- ★ _UD 파일 업로드 — 자동 파싱 -->
+      <div class="fg full" style="margin-top:4px">
+        <div class="ud-dropzone-label">📋 _UD 파일 업로드 — 위드 이력 파일을 올리면 자동으로 계보를 파악해요</div>
+        <div class="ud-dropzone-wrap"
+             id="udDropZone"
+             ondragover="event.preventDefault();this.style.borderColor='var(--accent2)'"
+             ondragleave="this.style.borderColor='var(--accent)'"
+             ondrop="event.preventDefault();this.style.borderColor='var(--accent)';parseUDFile(event.dataTransfer.files[0])">
+          <input type="file" id="udFileInput" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"
+                 onchange="parseUDFile(this.files[0])">
+          <div style="text-align:center;font-size:.75rem;color:var(--text2);line-height:1.8">
+            📂 <b style="color:var(--accent2)">대봉_UD.docx</b> 등 _UD 파일을 드래그하거나 클릭<br>
+            <span style="font-size:.68rem;color:var(--text3)">최신 위드를 부모 위드로 자동 설정 · 제목·유형 자동 입력</span>
+          </div>
+        </div>
+        <div id="udParseResult" style="display:none;margin-top:8px"></div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Personal Code</label>
+        <div class="field-wrap">
+          <select id="persCode" onchange="toggleCustom('persCode');saveForm();updatePrev()">
+            <option value="">— 없음 —</option>
+            <option value="TEAMT">TEAMT</option>
+            <option value="JAMES">JAMES</option>
+            <option value="CUSTOM">Custom input...</option>
+          </select>
+          <div class="custom-row" id="persCode-custom">
+            <input type="text" id="persCodeC" placeholder="자유 입력" oninput="saveForm();updatePrev()">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="prev-wrap">
+      <div class="prev-box">
+        <div class="prev-lbl">▸ 생성될 UIID 미리보기</div>
+        <div class="prev-code" id="prevCode">—</div>
+      </div>
+      <button class="p-btn" onclick="openPBtn()">P</button>
+    </div>
+    <div style="font-size:.68rem;margin:2px 0 6px;display:flex;align-items:center;gap:8px;">
+      <span id="hashSrcBadge" style="color:var(--text2);">ℹ️ 해시: 메타데이터 (파일 미업로드)</span>
+    </div>
+
+    <div class="check-bar">
+      <span class="cbadge cb-ready" id="globalBadge">🌐 Global Registry: Standby</span>
+      <span class="cbadge" id="localBadge" style="display:none"></span>
+      <button class="check-btn" onclick="runCheck()">✦ Check UIID</button>
+    </div>
+    <div class="dup-warn" id="dupWarn"></div>
+    <div class="notice-box" id="noticeBox"></div>
+
+    <div style="font-size:.68rem;color:var(--text2);margin:6px 0 2px;">📅 Date: <span id="dtDisplay">—</span></div>
+
+    <div class="btn-row">
+      <button class="btn btn-p" onclick="saveRec()">✦ UIID Save</button>
+      <button class="btn btn-s" onclick="copyPrev()" title="Copy">⎘ Copy</button>
+      <button class="btn btn-s" onclick="resetForm()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- ══ Tools ══ -->
+  <div class="sec-title">▸ Tools — UUID · SHA-256 생성 · 검증 · 비교</div>
+  <div class="tools-section">
+    <div class="tools-title">🛠 Tools</div>
+    <div class="tools-tabs">
+      <button class="tool-tab active" data-tool="uuid" onclick="switchTool('uuid')">🔑 UUID 생성</button>
+      <button class="tool-tab" data-tool="sha" onclick="switchTool('sha')">🔐 SHA-256 생성</button>
+      <button class="tool-tab" data-tool="case1" onclick="switchTool('case1')">🔎 무결성 검증 케이스1</button>
+      <button class="tool-tab" data-tool="compare" onclick="switchTool('compare')">⚖️ 동일성 비교 케이스2</button>
+      <button class="tool-tab" data-tool="stampB" onclick="switchTool('stampB')">📎 방식B — 파일 스탬프</button>
+      <button class="tool-tab" data-tool="wrapC" onclick="switchTool('wrapC')">📦 방식C — ZIP 포장</button>
+      <button class="tool-tab" data-tool="verifyDl" onclick="switchTool('verifyDl')">🔍 다운로드 검증</button>
+      <button class="tool-tab" data-tool="checkUiid" onclick="switchTool('checkUiid')">🔎 위드 확인</button>
+    </div>
+
+    <!-- UUID -->
+    <div class="tool-pane active" id="pane-uuid">
+      <div class="tool-label">UUID v4 단일 생성</div>
+      <div class="tool-row">
+        <input class="tool-out" id="uuidOut" readonly placeholder="UUID가 여기에 생성됩니다..." style="flex:1;">
+        <button class="tool-btn" onclick="genUUID()">⚡ 생성</button>
+        <button class="tool-btn gray" title="Copy" onclick="copyTool('uuidOut')">⎘ 복사</button>
+      </div>
+      <div class="tool-label" style="margin-top:10px;">연속 생성</div>
+      <div class="tool-row">
+        <input type="number" id="uuidCount" value="5" min="1" max="20" style="width:70px;">
+        <span style="font-size:.78rem;color:var(--text2);">개</span>
+        <button class="tool-btn" onclick="genMultiUUID()">📋 여러개 생성</button>
+        <button class="tool-btn gray" title="Copy" onclick="copyTool('uuidMultiOut')">⎘ 복사</button>
+      </div>
+      <textarea class="tool-out" id="uuidMultiOut" readonly rows="4" placeholder="여러 UUID가 여기에 표시됩니다..." style="margin-top:6px;resize:vertical;"></textarea>
+    </div>
+
+    <!-- SHA-256 생성 -->
+    <div class="tool-pane" id="pane-sha">
+      <div class="tool-label">텍스트 → SHA-256</div>
+      <textarea class="tool-out" id="shaTextIn" rows="3" placeholder="SHA-256을 계산할 텍스트를 입력하세요..." style="resize:vertical;margin-bottom:8px;"></textarea>
+      <div class="tool-row">
+        <button class="tool-btn" onclick="calcShaText()">🔐 텍스트로 생성</button>
+        <label class="tool-btn sec" style="cursor:pointer;">
+          📁 파일로 생성 <input type="file" id="shaFileIn" style="display:none" onchange="calcShaFile(this)">
+        </label>
+        <button class="tool-btn gray" title="Copy" onclick="copyTool('shaOut')">⎘ 복사</button>
+      </div>
+      <div class="sha-file-info" id="shaFileName"></div>
+      <div class="tool-label">SHA-256 결과 (64자)</div>
+      <input class="tool-out" id="shaOut" readonly placeholder="SHA-256 해시값이 여기에 표시됩니다...">
+      <div class="sha-12" id="shaOut12"></div>
+    </div>
+
+    <!-- 케이스1: 원본 샤 vs 현재 파일 -->
+    <div class="tool-pane" id="pane-case1">
+      <div style="background:#e8eeff;border:1px solid #a5b4fc;border-radius:8px;padding:10px 13px;font-size:.76rem;color:#3730a3;margin-bottom:14px;">
+        🔎 <b>케이스1 — 무결성 검증</b>: 작품이 나들이 후에도 원본 그대로인지 확인합니다.<br>
+        원본 SHA-256 값(배포 시 기록해둔 값)과 현재 파일의 SHA-256을 비교합니다.
+      </div>
+      <div class="tool-label">① 원본 SHA-256 값 입력 (배포 시 기록해둔 값)</div>
+      <div class="tool-row">
+        <input class="tool-out" id="case1Orig" placeholder="원본 SHA-256 64자리 값 입력..." style="flex:1;">
+        <button class="tool-btn gray" onclick="document.getElementById('case1Orig').value=''">↺</button>
+      </div>
+      <div class="tool-label" style="margin-top:10px;">② 현재 파일 선택 (SHA-256 자동 계산)</div>
+      <div class="tool-row">
+        <label class="tool-btn sec" style="cursor:pointer;">
+          📁 현재 파일 선택 <input type="file" id="case1File" style="display:none" onchange="loadCase1File(this)">
+        </label>
+        <button class="tool-btn" onclick="case1Compare()">🔎 무결성 검증</button>
+      </div>
+      <div class="sha-file-info" id="case1FileName"></div>
+      <div class="tool-label" style="margin-top:8px;">현재 파일 SHA-256</div>
+      <input class="tool-out" id="case1CurSha" readonly placeholder="현재 파일 SHA-256이 여기에 표시됩니다...">
+      <div class="sha-compare-result" id="case1Result"></div>
+    </div>
+
+    <!-- 케이스2: 두 파일 비교 -->
+    <div class="tool-pane" id="pane-compare">
+      <div style="background:#e8eeff;border:1px solid #a5b4fc;border-radius:8px;padding:10px 13px;font-size:.76rem;color:#3730a3;margin-bottom:14px;">
+        ⚖️ <b>케이스2 — 동일성 비교</b>: 두 파일이 완전히 동일한지 비교합니다.<br>
+        파일 A와 파일 B의 SHA-256을 각각 계산하여 비교합니다.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <div class="tool-label">파일 A</div>
+          <label class="tool-btn sec" style="cursor:pointer;display:block;text-align:center;margin-bottom:6px;">
+            📁 파일 A 선택 <input type="file" id="cmpFileA" style="display:none" onchange="loadCmpFile('A',this)">
+          </label>
+          <div class="sha-file-info" id="cmpNameA"></div>
+          <input class="tool-out" id="cmpA" placeholder="SHA-256 값 A..." style="font-size:.72rem;">
+        </div>
+        <div>
+          <div class="tool-label">파일 B</div>
+          <label class="tool-btn sec" style="cursor:pointer;display:block;text-align:center;margin-bottom:6px;">
+            📁 파일 B 선택 <input type="file" id="cmpFileB" style="display:none" onchange="loadCmpFile('B',this)">
+          </label>
+          <div class="sha-file-info" id="cmpNameB"></div>
+          <input class="tool-out" id="cmpB" placeholder="SHA-256 값 B..." style="font-size:.72rem;">
+        </div>
+      </div>
+      <div class="tool-row">
+        <button class="tool-btn" onclick="compareSha()">⚖️ 비교</button>
+        <button class="tool-btn gray" onclick="clearCompare()">↺ 초기화</button>
+        <span style="font-size:.72rem;color:var(--text2);">※ 파일 A·B 모두 선택하면 자동 비교</span>
+      </div>
+      <div class="sha-compare-result" id="cmpResult"></div>
+    </div>
+
+    <!-- ══ 방식B: 파일 스탬프 ══ -->
+    <div class="tool-pane" id="pane-stampB">
+      <div class="stamp-info stamp-result show" style="margin-bottom:12px;">
+        📎 <b>방식B — 파일 스탬프</b>: 파일을 업로드하면 UIID를 자동으로 찍어서 다운로드합니다.<br>
+        지원: TXT · MD · HTML · PNG · JPG · WEBP · PDF<br>
+        <span style="font-size:.72rem;">※ DOCX·XLSX·HWP 등 복잡한 포맷은 방식C(ZIP 포장)를 이용하세요.</span><br>
+        <span style="font-size:.72rem;">📄 TXT/MD 파일에 <code>---PAGE---</code> 줄을 넣어두면, docx/pdf처럼 그 페이지마다 UIID가 찍혀요.</span>
+      </div>
+      <div class="tool-label">① 스탬프할 파일 선택</div>
+      <div class="stamp-drop" id="stampBDrop" ondragover="stampDragOver('B',event)" ondragleave="stampDragLeave('B')" ondrop="stampDrop('B',event)">
+        <input type="file" id="stampBFile" accept=".txt,.md,.html,.htm,.png,.jpg,.jpeg,.webp,.pdf,.docx,.xlsx,.pptx" onchange="stampBLoad(this)">
+        <div class="stamp-drop-icon">📁</div>
+        <div class="stamp-drop-text">파일을 드래그하거나 <b>클릭</b>해서 선택<br><span style="font-size:.7rem;">TXT · HTML · PNG · JPG · WEBP · PDF</span></div>
+      </div>
+      <div class="stamp-loaded" id="stampBLoaded">
+        <span class="stamp-loaded-name" id="stampBName">—</span>
+        <span style="font-size:.72rem;color:#3730a3;" id="stampBSize"></span>
+      </div>
+      <div class="tool-label">② UIID 확인 (현재 폼 기준 자동 입력)</div>
+      <div class="tool-row">
+        <input class="tool-out" id="stampBUiid" placeholder="UIID 코드 (폼에서 자동 입력되거나 직접 입력)" style="flex:1;font-size:.75rem;">
+        <button class="tool-btn gray" onclick="stampBFillUiid()">📋 폼에서 가져오기</button>
+      </div>
+      <div class="tool-label" style="margin-top:8px;">③ 스탬프 위치</div>
+      <div class="tool-row" style="gap:6px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer;"><input type="radio" name="stampPos" value="bottom" checked> 하단</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer;"><input type="radio" name="stampPos" value="top"> 상단</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer;"><input type="radio" name="stampPos" value="watermark"> 워터마크(이미지만)</label>
+      </div>
+      <div class="tool-row" style="margin-top:10px;">
+        <button class="tool-btn" onclick="doStampB()">📎 UIID 스탬프 찍기</button>
+      </div>
+      <div class="stamp-result" id="stampBResult"></div>
+    </div>
+
+    <!-- ══ 방식C: ZIP 포장 ══ -->
+    <div class="tool-pane" id="pane-wrapC">
+      <div class="stamp-info stamp-result show" style="margin-bottom:12px;">
+        📦 <b>방식C — ZIP 포장</b>: 원본 파일을 수정하지 않고 UIID 인증서와 함께 ZIP으로 포장합니다.<br>
+        모든 파일 형식 지원 · 원본 무결성 100% 보존
+      </div>
+      <div class="tool-label">① 포장할 파일 선택 (모든 파일 가능)</div>
+      <div class="stamp-drop" id="wrapCDrop" ondragover="stampDragOver('C',event)" ondragleave="stampDragLeave('C')" ondrop="stampDrop('C',event)">
+        <input type="file" id="wrapCFile" onchange="wrapCLoad(this)">
+        <div class="stamp-drop-icon">📦</div>
+        <div class="stamp-drop-text">파일을 드래그하거나 <b>클릭</b>해서 선택<br><span style="font-size:.7rem;">모든 파일 형식 지원</span></div>
+      </div>
+      <div class="stamp-loaded" id="wrapCLoaded">
+        <span class="stamp-loaded-name" id="wrapCName">—</span>
+        <span style="font-size:.72rem;color:#3730a3;" id="wrapCSha"></span>
+      </div>
+      <div class="tool-label">② UIID 확인</div>
+      <div class="tool-row">
+        <input class="tool-out" id="wrapCUiid" placeholder="UIID 코드" style="flex:1;font-size:.75rem;">
+        <button class="tool-btn gray" onclick="wrapCFillUiid()">📋 폼에서 가져오기</button>
+      </div>
+      <div class="tool-label" style="margin-top:8px;">③ 포장 안에 포함할 내용</div>
+      <div style="font-size:.75rem;color:var(--text2);margin-bottom:8px;line-height:1.8;">
+        ✅ 원본 파일 (무수정 그대로)<br>
+        ✅ UIID_cert.json (UIID · SHA-256 · 등록일시 · 창작자)<br>
+        ✅ README.txt (포장 안내 · 검증 방법)
+      </div>
+      <div class="tool-row">
+        <button class="tool-btn sec" onclick="doWrapC()">📦 ZIP 포장하기</button>
+      </div>
+      <div class="stamp-result" id="wrapCResult"></div>
+    </div>
+
+    <!-- ══ 다운로드 검증 ══ -->
+    <div class="tool-pane" id="pane-verifyDl">
+      <div class="stamp-info stamp-result show" style="margin-bottom:12px;">
+        🔍 <b>다운로드 검증</b>: 방식C로 받은 ZIP 파일을 열어서 변조 여부를 즉시 확인합니다.<br>
+        UIID_cert.json의 SHA-256과 원본 파일의 SHA-256을 비교합니다.
+      </div>
+      <div class="tool-label">① 검증할 ZIP 파일 선택</div>
+      <div class="stamp-drop" id="verifyDrop" ondragover="stampDragOver('V',event)" ondragleave="stampDragLeave('V')" ondrop="stampDrop('V',event)">
+        <input type="file" id="verifyFile" accept=".zip" onchange="verifyDlLoad(this)">
+        <div class="stamp-drop-icon">🔍</div>
+        <div class="stamp-drop-text">ZIP 파일을 드래그하거나 <b>클릭</b>해서 선택</div>
+      </div>
+      <div class="stamp-loaded" id="verifyLoaded">
+        <span class="stamp-loaded-name" id="verifyName">—</span>
+      </div>
+      <div id="verifyCertFields" style="display:none;">
+        <div class="tool-label">인증서 정보 (UIID_cert.json)</div>
+        <div class="cert-fields" id="certCards"></div>
+      </div>
+      <div class="tool-row" style="margin-top:8px;">
+        <button class="tool-btn" onclick="doVerifyDl()">🔍 변조 검증 실행</button>
+        <button class="tool-btn gray" onclick="clearVerify()">↺ 초기화</button>
+      </div>
+      <div class="verify-match" id="verifyMatch">
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:6px;">✅ 검증 통과! 원본 보증</div>
+        <div id="verifyMatchDetail" style="font-size:.78rem;line-height:1.8;"></div>
+      </div>
+      <div class="verify-fail" id="verifyFail">
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:6px;">🚨 변조 탐지! 신뢰 불가</div>
+        <div id="verifyFailDetail" style="font-size:.78rem;line-height:1.8;"></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #fca5a5;">
+          💡 <b>대응 방법</b>: 발신자에게 방식C(.uiid 전용 컨테이너) 또는 레지스트리 등록된 파일로 재전송을 요청하세요.
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ 위드 확인 탭 ══ -->
+    <div class="tool-pane" id="pane-checkUiid">
+      <div class="stamp-info stamp-result show" style="margin-bottom:12px;">
+        🔎 <b>위드 확인</b>: 파일을 올리면 위드(UIID)가 있는지 자동으로 찾고, 있으면 해시값으로 진위까지 즉시 검증합니다.<br>
+        <span style="font-size:.72rem;">TXT · HTML · PNG · JPG · PDF · DOCX 지원</span>
+      </div>
+
+      <!-- 파일 드롭존 -->
+      <div class="tool-label">① 확인할 파일 선택</div>
+      <div class="stamp-drop" id="checkDrop"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="event.preventDefault();this.classList.remove('drag-over');checkDropFile(event)">
+        <input type="file" id="checkFile"
+               accept=".txt,.md,.html,.htm,.png,.jpg,.jpeg,.webp,.pdf,.docx,.xlsx,.pptx"
+               onchange="doCheckUiid(this.files[0])">
+        <div class="stamp-drop-icon">🔎</div>
+        <div class="stamp-drop-text">파일을 드래그하거나 <b>클릭</b>해서 선택<br>
+          <span style="font-size:.7rem;">TXT · HTML · PNG · JPG · PDF · DOCX · XLSX · PPTX</span>
+        </div>
+      </div>
+
+      <!-- 진행 상태 -->
+      <div id="checkProgress" style="display:none;margin-top:10px;">
+        <div class="oc-step-list">
+          <div class="oc-step-item wait" id="ck1"><div class="oc-step-dot">1</div><span id="ck1txt">파일 읽기 대기...</span></div>
+          <div class="oc-step-item wait" id="ck2"><div class="oc-step-dot">2</div><span id="ck2txt">위드 탐색 대기...</span></div>
+          <div class="oc-step-item wait" id="ck3"><div class="oc-step-dot">3</div><span id="ck3txt">해시값 검증 대기...</span></div>
+          <div class="oc-step-item wait" id="ck4"><div class="oc-step-dot">4</div><span id="ck4txt">레지스트리 대조 대기...</span></div>
+        </div>
+      </div>
+
+      <!-- 결과: 위드 없음 -->
+      <div id="checkNoUiid" style="display:none;margin-top:12px;background:#FFF5F2;border:1.5px solid #F0997B;border-radius:10px;padding:14px;">
+        <div style="font-size:1rem;font-weight:700;color:#993C1D;margin-bottom:6px;">⚠️ 위드가 없는 파일이에요!</div>
+        <div style="font-size:.78rem;color:#712B13;line-height:1.8;" id="checkNoMsg"></div>
+        <div style="margin-top:10px;">
+          <button class="tool-btn" onclick="switchTool('compare');toast('원클릭 섹션으로 이동하세요 ^^')">
+            ⚡ 원클릭으로 위드 찍기
+          </button>
+        </div>
+      </div>
+
+      <!-- 결과: 위드 있음 -->
+      <div id="checkHasUiid" style="display:none;margin-top:12px;">
+        <!-- 위드 코드 표시 -->
+        <div style="background:#E8EEFF;border:1.5px solid #A5B4FC;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+          <div style="font-size:.68rem;font-weight:700;letter-spacing:.08em;color:#3730A3;text-transform:uppercase;margin-bottom:4px;">발견된 위드 코드</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:.78rem;color:#1e1b4b;word-break:break-all;line-height:1.6;" id="checkFoundUiid">—</div>
+        </div>
+
+        <!-- 해시 검증 결과 -->
+        <div id="checkHashResult" style="display:none;"></div>
+
+        <!-- 레지스트리 대조 결과 -->
+        <div id="checkRegResult" style="display:none;margin-top:8px;"></div>
+
+        <!-- 레지스트리 대조 버튼 -->
+        <div class="tool-row" style="margin-top:10px;">
+          <button class="tool-btn sec" id="checkRegBtn" onclick="doCheckRegistry()" style="display:none;">
+            🌐 레지스트리 대조 (선택)
+          </button>
+          <button class="tool-btn gray" onclick="resetCheck()">↺ 초기화</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="sec-title">▸ UIID Identify — 위드 코드 식별 · 검증</div>
+  <div class="identify-section">
+    <div class="identify-title">🔍 UIID Identify
+      <span style="font-size:.72rem;font-weight:400;color:var(--text2);">위드 코드를 붙여넣으면 → 창작자·일시·유형 <b>식별</b> + Hash·등록 여부 <b>검증</b></span>
+    </div>
+    <div class="id-input-row">
+      <input class="id-input" id="idInput" placeholder="UIID 코드 붙여넣기  예) HUM-bestsmileman-CLAUDX789-20260410143025-KR-DOCX-V-ABCD12345678" onkeydown="if(event.key==='Enter')runIdentify()">
+      <button class="id-btn" onclick="runIdentify()">🔍 Identify</button>
+      <button class="id-clear-btn" onclick="clearIdentify()">✕</button>
+    </div>
+    <div class="id-result" id="idResult">
+      <div class="id-fields" id="idFields"></div>
+      <div class="id-status-row" id="idStatusRow"></div>
+      <div class="id-detail-box" id="idDetailBox"></div>
+      <div class="id-sha-row" id="idShaRow" style="display:none">
+        <span class="id-sha-label">🔐 파일 무결성</span>
+        <span class="id-sha-val" id="idShaVal">원본 파일을 선택하면 SHA-256으로 파일 무결성도 검증합니다</span>
+        <label style="cursor:pointer;background:var(--accent2);color:white;border-radius:7px;padding:5px 12px;font-size:.75rem;font-weight:700;">
+          📁 파일 선택 <input type="file" id="idFileInput" style="display:none" onchange="calcSha256(this)">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-title">▸ Registered Records</div>
+  <div class="search-bar">
+    <input type="text" id="searchIn" placeholder="🔍  Search..." oninput="renderList()">
+    <button class="bar-btn" onclick="openExplorer()">📂 All Records</button>
+  </div>
+  <div class="rec-list" id="recList"></div>
+<p style="text-align: center;"><span style="text-align: center; color: #0000ff;"><span style="background-color: #fdf5bf; color: #c8960a;"><span style="font-size: xx-small;"><span style="font-size: 8pt;">HOC-BESTSM00-CLAUDX789-20260413101425-KR-CODE-V-ACVCB417WFOX-C</span><span style="font-size: 8pt;">2-WORKS_UIID_Manager // 공모전</span></span></span></span></p>
+</main>
+
+<script>
+'use strict';
+
+// ══════ Supabase ══════
+const SB_URL='https://tuquymzdozkuylbxblhr.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1cXV5bXpkb3prdXlsYnhibGhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NTE2NzksImV4cCI6MjA5MTAyNzY3OX0.c1DNclUazjdXB3smWEsAyn4fr_zy_TsPlOfFQzoU7Y0';
+const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
+async function sbFetch(path,method,body){
+  const opt={method:method||'GET',headers:SB_H};
+  if(body) opt.body=JSON.stringify(body);
+  const res=await fetch(SB_URL+path,opt);
+  if(!res.ok) throw new Error(await res.text());
+  return (method||'GET')==='GET'?res.json():res;
+}
+async function checkDb(){
+  try{
+    await sbFetch('/rest/v1/documents?select=fingerprint&limit=1');
+    document.getElementById('dbDot').style.background='#2ecc71';
+    document.getElementById('dbLabel').textContent='DB 연결됨';
+  }catch{
+    document.getElementById('dbDot').style.background='#e74c3c';
+    document.getElementById('dbLabel').textContent='DB 오류';
+  }
+}
+async function sbSave(rec){
+  try{
+    await sbFetch('/rest/v1/documents','POST',{
+      fingerprint:rec.fp, origin:rec.creator, user_id:rec.userId,
+      ai_id:rec.aiCode!=='000'?rec.aiCode:null,
+      created_at:new Date().toISOString(), lang:rec.country,
+      file_type:rec.ftype, verify_status:rec.verify,
+      hash:rec.hash, title:rec.title||'(제목 없음)',
+      co_author_count:rec.coCount||0
+    });
+    if(rec.coAuthors&&rec.coAuthors.length>0){
+      await sbFetch('/rest/v1/co_authors','POST',
+        rec.coAuthors.map(c=>({fingerprint:rec.fp,author_id:c.id,author_name:c.name,author_type:c.type,order_num:c.order}))
+      );
+    }
+    return true;
+  }catch{ return false; }
+}
+async function sbCheckDup(fp){
+  try{ return await sbFetch('/rest/v1/documents?fingerprint=eq.'+encodeURIComponent(fp)+'&select=fingerprint,title'); }
+  catch{ return []; }
+}
+
+// ══════ 로컬 데이터 ══════
+const STORE='uiid_v7_recs', PW_KEY='uiid_v7_pw', UNLOCK_KEY='uiid_v7_unlock', UNLOCK_MIN='uiid_v7_min', FORM_KEY='uiid_v7_form';
+let recs=[];
+function loadRecs(){ try{ recs=JSON.parse(localStorage.getItem(STORE)||'[]'); }catch{ recs=[]; } }
+function saveRecs(){ localStorage.setItem(STORE,JSON.stringify(recs)); }
+loadRecs();
+
+// ══════ 폼 값 읽기 ══════
+function selVal(selId,custId){
+  const v=document.getElementById(selId).value;
+  return v==='CUSTOM'?(document.getElementById(custId).value||'').trim():v;
+}
+function getCreator(){ return selVal('creator','creatorC')||'HOC'; }
+function getUserId(){
+  const v=document.getElementById('userId').value;
+  const r=v==='CUSTOM'?(document.getElementById('userIdC').value||''):v;
+  return r.toUpperCase().slice(0,8).padEnd(8,'0');
+}
+function getAiCode(){
+  const v=document.getElementById('aiCode').value;
+  return (v==='CUSTOM'?(document.getElementById('aiCodeC').value||'000'):v).toUpperCase().slice(0,9)||'000';
+}
+function getCountry(){
+  const v=document.getElementById('country').value;
+  return (v==='CUSTOM'?(document.getElementById('countryC').value||'KR'):v).toUpperCase().slice(0,2)||'KR';
+}
+function getFtype(){
+  const v=document.getElementById('ftype').value;
+  return (v==='CUSTOM'?(document.getElementById('ftypeC').value||'TXT'):v).toUpperCase()||'TXT';
+}
+function getVerify(){ return document.getElementById('verify').value||'V'; }
+function getTitle(){ return document.getElementById('docTitle').value.trim(); }
+function getCoCount(){ return Math.max(0,parseInt(document.getElementById('coAuthorCount').value||'0',10)||0); }
+function getPersCode(){
+  const v=document.getElementById('persCode').value;
+  return v==='CUSTOM'?(document.getElementById('persCodeC').value||'').trim():v;
+}
+
+// ══════ Custom input 토글 ══════
+function toggleCustom(fieldId){
+  const v=document.getElementById(fieldId).value;
+  const row=document.getElementById(fieldId+'-custom');
+  if(!row) return;
+  if(v==='CUSTOM'){
+    row.classList.add('show');
+    const inp=row.querySelector('input');
+    if(inp){
+      setTimeout(()=>inp.focus(),50);
+      // creator custom 입력 후 포커스 벗어나면 고정 등록
+      if(fieldId==='creator'){
+        inp.onblur=function(){
+          const val=this.value.trim().toUpperCase();
+          if(val.length>=2){ saveCustomCreator(val); renderCustomCreatorOptions(); }
+        };
+      }
+    }
+  } else {
+    row.classList.remove('show');
+  }
+}
+
+// ══════ 공동저자 입력란 ══════
+function renderCoAuthFields(){
+  const n=Math.max(0,Math.min(20,getCoCount()));
+  const wrap=document.getElementById('caFields');
+  if(n===0){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+  const existing=getCoAuthData();
+  wrap.style.display='flex';
+  // 제1저자: 현재 사용자 ID 자동입력
+  const firstAuthorId=getUserId();
+  wrap.innerHTML=Array.from({length:n},(_,i)=>{
+    const d=existing[i]||{id:i===0?firstAuthorId:'',name:'',type:'HUMAN'};
+    return `<div class="ca-item">
+      <span class="ca-num">${i+1}</span>
+      <input type="text" id="ca-id-${i}" placeholder="${i===0?'제1저자 (자동입력)':'ID (예: KIMYJ456)'}" value="${esc(d.id)}" maxlength="12" oninput="saveForm();updatePrev()">
+      <input type="text" id="ca-name-${i}" placeholder="${i===0?'제1저자 이름':'이름 (예: 김영준)'}" value="${esc(d.name)}" oninput="saveForm();updatePrev()">
+      <button class="ca-type-btn ${d.type==='AI'?'ai':'human'}" id="ca-type-${i}" onclick="toggleCaType(${i})">${d.type==='AI'?'AI':'HUMAN'}</button>
+    </div>`;
+  }).join('');
+}
+
+function toggleCaType(i){
+  const btn=document.getElementById('ca-type-'+i);
+  const isAI=btn.textContent.trim()==='AI';
+  btn.textContent=isAI?'HUMAN':'AI';
+  btn.className='ca-type-btn '+(isAI?'human':'ai');
+  saveForm();
+}
+
+function getCoAuthData(){
+  const n=getCoCount();
+  const result=[];
+  for(let i=0;i<n;i++){
+    const idEl=document.getElementById('ca-id-'+i);
+    if(!idEl) break;
+    result.push({
+      id:(idEl.value||'').trim(),
+      name:(document.getElementById('ca-name-'+i).value||'').trim(),
+      type:(document.getElementById('ca-type-'+i)||{}).textContent?.trim()||'HUMAN',
+      order:i+1
+    });
+  }
+  return result;
+}
+
+// ══════ 폼 자동저장 / 복원 ══════
+function saveForm(){
+  try{
+    localStorage.setItem(FORM_KEY,JSON.stringify({
+      creator:document.getElementById('creator').value,
+      creatorC:document.getElementById('creatorC').value,
+      userId:document.getElementById('userId').value,
+      userIdC:document.getElementById('userIdC').value,
+      aiCode:document.getElementById('aiCode').value,
+      aiCodeC:document.getElementById('aiCodeC').value,
+      country:document.getElementById('country').value,
+      countryC:document.getElementById('countryC').value,
+      ftype:document.getElementById('ftype').value,
+      ftypeC:document.getElementById('ftypeC').value,
+      verify:document.getElementById('verify').value,
+      docTitle:document.getElementById('docTitle').value,
+      coAuthorCount:document.getElementById('coAuthorCount').value,
+      persCode:document.getElementById('persCode').value,
+      persCodeC:document.getElementById('persCodeC').value,
+      coAuthors:getCoAuthData(),
+      parentUiid:(document.getElementById('parentUiid')?.value||'')
+    }));
+  }catch(e){}
+}
+
+function loadForm(){
+  try{
+    const raw=localStorage.getItem(FORM_KEY);
+    if(!raw) return;
+    const d=JSON.parse(raw);
+    function set(id,v){ const el=document.getElementById(id); if(el&&v!==undefined&&v!==null) el.value=v; }
+    set('creator',d.creator);     if(d.creator==='CUSTOM'){ set('creatorC',d.creatorC); toggleCustom('creator'); }
+    set('userId',d.userId);       if(d.userId==='CUSTOM'){   set('userIdC',d.userIdC);   toggleCustom('userId'); }
+    set('aiCode',d.aiCode);       if(d.aiCode==='CUSTOM'){   set('aiCodeC',d.aiCodeC);   toggleCustom('aiCode'); }
+    set('country',d.country);     if(d.country==='CUSTOM'){  set('countryC',d.countryC); toggleCustom('country'); }
+    set('ftype',d.ftype);         if(d.ftype==='CUSTOM'){    set('ftypeC',d.ftypeC);     toggleCustom('ftype'); }
+    set('verify',d.verify);
+    set('docTitle',d.docTitle);
+    set('persCode',d.persCode);   if(d.persCode==='CUSTOM'){ set('persCodeC',d.persCodeC); toggleCustom('persCode'); }
+    // parent 위드 복원
+    if(d.parentUiid) set('parentUiid',d.parentUiid);
+    // 공동저자 복원
+    if(d.coAuthorCount>0){
+      set('coAuthorCount',d.coAuthorCount);
+      renderCoAuthFields();
+      (d.coAuthors||[]).forEach((c,i)=>{
+        set('ca-id-'+i, c.id);
+        set('ca-name-'+i, c.name);
+        const btn=document.getElementById('ca-type-'+i);
+        if(btn){
+          btn.textContent=c.type||'HUMAN';
+          btn.className='ca-type-btn '+(c.type==='AI'?'ai':'human');
+        }
+      });
+    }
+  }catch(e){}
+}
+
+// ══════ UIID 생성 ══════
+// ══════ Custom 생성주체 고정 등록 ══════
+const CUSTOM_CREATORS_KEY='uiid_custom_creators';
+function loadCustomCreators(){
+  try{ return JSON.parse(localStorage.getItem(CUSTOM_CREATORS_KEY)||'[]'); }catch{ return []; }
+}
+function saveCustomCreator(val){
+  if(!val||val.length<2) return;
+  const list=loadCustomCreators();
+  if(!list.includes(val)){ list.push(val); localStorage.setItem(CUSTOM_CREATORS_KEY,JSON.stringify(list)); }
+}
+function renderCustomCreatorOptions(){
+  const sel=document.getElementById('creator');
+  if(!sel) return;
+  // 기존 custom 옵션 제거
+  Array.from(sel.options).forEach(o=>{ if(o.dataset.custom==='1') sel.remove(o.index); });
+  // custom 목록 추가 (CUSTOM... 바로 앞에)
+  const customIdx=Array.from(sel.options).findIndex(o=>o.value==='CUSTOM');
+  loadCustomCreators().forEach(v=>{
+    const opt=new Option(v+' (Custom)',v);
+    opt.dataset.custom='1';
+    sel.add(opt,customIdx);
+  });
+}
+
+function getNow(){
+  const d=new Date();
+  return ''+d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+p2(d.getHours())+p2(d.getMinutes())+p2(d.getSeconds());
+}
+function p2(n){ return String(n).padStart(2,'0'); }
+function fmtDt(s){ return s?s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8)+' '+s.slice(8,10)+':'+s.slice(10,12):s; }
+function makeHash(src){
+  let a=0x811c9dc5,b=0x9e3779b9;
+  for(let i=0;i<src.length;i++){ a^=src.charCodeAt(i); a=(a*0x01000193)>>>0; b=(b+src.charCodeAt(i)*31)>>>0; }
+  return ((a.toString(36)+b.toString(36)).toUpperCase()+'000000000000').slice(0,12);
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+let _dt='';
+
+function updatePrev(){
+  const cr=getCreator(),uid=getUserId(),ai=getAiCode();
+  // _dt가 비어있을 때만 새로 생성 (해시 고정)
+  if(!_dt) _dt=getNow();
+  const dt=_dt;
+  const co=getCountry(),ft=getFtype(),vf=getVerify();
+  const title=getTitle(),cc=getCoCount(),pe=getPersCode();
+  const h=getActiveHash(cr,uid,ai,dt,co,ft,vf);
+  const S='<span class="sep">-</span>';
+  let html='<span class="pt">'+cr+'</span>'+S+'<span class="pt">'+uid+'</span>'+S+
+           '<span class="pt">'+ai+'</span>'+S+'<span>'+dt+'</span>'+S+
+           '<span>'+co+'</span>'+S+'<span>'+ft+'</span>'+S+
+           '<span>'+vf+'</span>'+S+'<span class="hh">'+h+'</span>';
+  if(cc>0) html+=S+'<span style="color:var(--accent2)">C'+cc+'</span>';
+  if(title) html+=S+'<span style="color:var(--text2)">'+esc(title)+'</span>';
+  if(pe) html+='<span class="sep"> // </span><span class="pe">'+esc(pe)+'</span>';
+  document.getElementById('prevCode').innerHTML=html;
+  document.getElementById('dtDisplay').textContent=fmtDt(dt);
+  // 해시 출처 표시
+  const srcEl=document.getElementById('hashSrcBadge');
+  if(srcEl){
+    if(_fileHashForUiid){
+      srcEl.textContent='🔐 해시: 생성자+날짜+파일SHA12 결합 (변조방지 완전체)';
+      srcEl.style.color='#1D9E75';
+    } else {
+      srcEl.textContent='ℹ️ 해시: 메타데이터 (파일 미업로드)';
+      srcEl.style.color='var(--text2)';
+    }
+  }
+}
+
+function getPlainFP(){
+  const cr=getCreator(),uid=getUserId(),ai=getAiCode();
+  const dt=_dt||getNow(),co=getCountry(),ft=getFtype(),vf=getVerify();
+  return cr+'-'+uid+'-'+ai+'-'+dt+'-'+co+'-'+ft+'-'+vf+'-'+getActiveHash(cr,uid,ai,dt,co,ft,vf);
+}
+
+function getPlainUIID(){
+  const fp=getPlainFP(),cc=getCoCount(),title=getTitle(),pe=getPersCode();
+  let u=fp;
+  if(cc>0) u+='-C'+cc;
+  if(title) u+='-'+title;
+  if(pe) u+=' // '+pe;
+  return u;
+}
+
+function copyText(text){
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(()=>toast('✅ Copied!'));
+  } else {
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('✅ Copied!');
+  }
+}
+function copyPrev(){ copyText(getPlainUIID()); }
+
+// ══════ Check ══════
+async function runCheck(){
+  const fp=getPlainFP();
+  const localDup=recs.filter(r=>r.fp===fp);
+  const lb=document.getElementById('localBadge');
+  const gb=document.getElementById('globalBadge');
+  const dw=document.getElementById('dupWarn');
+  const nb=document.getElementById('noticeBox');
+  lb.style.display='inline-flex';
+  dw.className='dup-warn'; nb.className='notice-box';
+  if(localDup.length>0){
+    lb.className='cbadge cb-dup'; lb.textContent='⚠️ 로컬 중복 '+localDup.length+'건';
+    dw.className='dup-warn show';
+    dw.innerHTML='⚠️ 이미 등록: <b>'+esc(localDup.map(r=>r.title||r.fp.slice(0,20)).join(', '))+'</b>';
+  } else {
+    lb.className='cbadge cb-ok'; lb.textContent='✅ 로컬 중복 없음';
+  }
+  gb.className='cbadge cb-chk'; gb.textContent='🌐 Global Registry: 확인 중...';
+  const gdup=await sbCheckDup(fp);
+  if(gdup&&gdup.length>0){
+    gb.className='cbadge cb-dup'; gb.textContent='🌐 Global: ⚠️ 중복!';
+    nb.className='notice-box notice-dup show';
+    nb.innerHTML='<strong>🌐 세계 Registry 중복!</strong> "'+esc(gdup[0].title||gdup[0].fingerprint)+'" 이미 등록됨.';
+  } else {
+    gb.className='cbadge cb-ok'; gb.textContent='🌐 Global: ✅ 중복 없음';
+    nb.className='notice-box notice-ok show';
+    nb.innerHTML='<strong>🌐 세계 Registry 확인 완료!</strong> 중복 없음. 안전하게 등록 가능합니다. ✅';
+  }
+}
+
+// ══════ Save ══════
+async function saveRec(){
+  const cr=getCreator(),uid=getUserId();
+  if(!cr||uid==='00000000'){ toast('⚠️ Creator와 User ID를 입력해 주세요!'); return; }
+  const ai=getAiCode(),dt=getNow(),co=getCountry(),ft=getFtype(),vf=getVerify(); // ★ 저장 시각 확정
+  const title=getTitle(),cc=getCoCount(),pe=getPersCode();
+  const coAuthors=getCoAuthData();
+  const h=getActiveHash(cr,uid,ai,dt,co,ft,vf);
+  const fp=cr+'-'+uid+'-'+ai+'-'+dt+'-'+co+'-'+ft+'-'+vf+'-'+h;
+  let u=fp;
+  if(cc>0) u+='-C'+cc;
+  if(title) u+='-'+title;
+  if(pe) u+=' // '+pe;
+
+  const rec={
+    id:Date.now(),creator:cr,userId:uid,aiCode:ai,dateStr:dt,
+    country:co,ftype:ft,verify:vf,title:title,coCount:cc,
+    personal:pe,hash:h,fp:fp,uiid:u,inputDate:dt,modDate:dt,
+    secret:'',globalDup:false,coAuthors:coAuthors,
+    parent:getParentUiid()
+  };
+
+  recs.unshift(rec); saveRecs(); renderList(); updateStats();
+  // ★ 저장 후 모든 항목 유지 — 아무것도 초기화하지 않음 ★
+  updatePrev();
+  saveForm();
+
+  const ok=await sbSave(rec);
+  if(ok){
+    localStorage.setItem('uiid_sync_signal', Date.now().toString());
+    toast('✅ 로컬 + 🌐 Registry 등록 완료!');
+  } else {
+    toast('✅ 로컬 저장 완료');
+  }
+
+  // ★ Fix3 (v11_final 재정비): 파일이 로드된 경우 _UD 파일 자동 생성
+  // → 원클릭(ONE-CLICK)과 완전히 동일한 buildUDFile() 엔진을 사용해서
+  //    "다클릭"(Register 폼)으로 만든 _UD 파일도 확장자에 상관없이
+  //    원클릭과 똑같은 형식으로 생성되도록 통일함.
+  if(_loadedFile && _loadedFileSha){
+    try{
+      const sha12=_fileHashForUiid||_loadedFileSha.slice(0,12).toUpperCase();
+      const built=await buildUDFile(_loadedFile,u,{dt,sha:_loadedFileSha,sha12});
+      dlBlob(built.blob,built.name);
+      toast('✅ '+built.name+' 저장됨!');
+    }catch(e2){console.warn('_UD 파일 생성 오류:',e2);toast('⚠️ _UD 파일 생성 중 오류: '+e2.message);}
+  }
+
+  // ★ Fix8: saveRec 후 parent 초기화
+  const pEl=document.getElementById('parentUiid');
+  if(pEl) pEl.value='';
+  const psEl=document.getElementById('parentStatus');
+  if(psEl) psEl.textContent='';
+  saveForm();
+} // ── saveRec 끝 ──
+
+// ══════ Delete / Copy ══════
+function delRec(id){
+  const btn=document.querySelector('[data-del="'+id+'"]');
+  if(!btn) return;
+  if(btn.dataset.confirm==='1'){
+    recs=recs.filter(r=>r.id!==id);
+    saveRecs(); renderList(); updateStats();
+  } else {
+    btn.dataset.confirm='1'; btn.textContent='Sure?';
+    btn.style.cssText='background:var(--danger);color:white;border-color:var(--danger)';
+    setTimeout(()=>{btn.dataset.confirm='0';btn.textContent='✕';btn.style.cssText='';},2500);
+  }
+}
+function copyRec(u){ copyText(u); }
+
+function resetForm(){
+  _dt=''; // 리셋 시에만 새 날짜/해시 생성
+  ['creator','userId','aiCode','country','ftype'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.selectedIndex=0;
+    const c=document.getElementById(id+'-custom'); if(c) c.classList.remove('show');
+    const ci=document.getElementById(id+'C'); if(ci) ci.value='';
+  });
+  document.getElementById('verify').selectedIndex=0;
+  document.getElementById('docTitle').value='';
+  document.getElementById('coAuthorCount').value='0';
+  document.getElementById('caFields').style.display='none';
+  document.getElementById('caFields').innerHTML='';
+  document.getElementById('persCode').value='';
+  document.getElementById('persCode-custom').classList.remove('show');
+  document.getElementById('persCodeC').value='';
+  // parent 초기화
+  if(document.getElementById('parentUiid')) document.getElementById('parentUiid').value='';
+  if(document.getElementById('parentStatus')) document.getElementById('parentStatus').textContent='';
+  if(document.getElementById('udParseResult')) document.getElementById('udParseResult').style.display='none';
+  if(document.getElementById('udFileInput')) document.getElementById('udFileInput').value='';
+  document.getElementById('globalBadge').className='cbadge cb-ready';
+  document.getElementById('globalBadge').textContent='🌐 Global Registry: Standby';
+  document.getElementById('localBadge').style.display='none';
+  document.getElementById('dupWarn').className='dup-warn';
+  document.getElementById('noticeBox').className='notice-box';
+  localStorage.removeItem(FORM_KEY);
+  updatePrev();
+}
+
+// ══════ 목록 렌더링 ══════
+function renderList(){
+  const q=(document.getElementById('searchIn').value||'').toLowerCase();
+  const fl=recs.filter(r=>!q||r.uiid.toLowerCase().includes(q)||(r.title||'').toLowerCase().includes(q));
+  const el=document.getElementById('recList');
+  if(!fl.length){ el.innerHTML='<div class="empty-msg">등록된 UIID가 없어요.</div>'; return; }
+  el.innerHTML=fl.map(r=>`
+    <div class="rec">
+      <div class="rec-top">
+        <div class="rec-uiid">${esc(r.uiid)}${r.secret?'<span class="p-badge">P</span>':''}</div>
+        <div class="rec-acts">
+          <button class="ico-btn" onclick="openSecret(${r.id})" title="Secret">🔐</button>
+          <button class="ico-btn" title="복사" onclick="copyRec(${JSON.stringify(r.uiid)});return false;">⎘</button>
+          <button class="ico-btn del" data-del="${r.id}" data-confirm="0" onclick="delRec(${r.id})">✕</button>
+        </div>
+      </div>
+      <div class="rec-meta">
+        ${r.title?`<span class="chip">제목 <span>${esc(r.title)}</span></span>`:''}
+        <span class="chip">Creator <span>${r.creator}</span></span>
+        <span class="chip">국가 <span>${r.country}</span></span>
+        <span class="chip">유형 <span>${r.ftype}</span></span>
+        <span class="chip">검증 <span>${r.verify}</span></span>
+        ${r.coCount>0?`<span class="chip">공동저자 <span>C${r.coCount}</span></span>`:''}
+        ${r.parent?`<span class="chip" style="border-color:var(--gold);color:var(--gold)">🌳 부모위드 <span style="font-size:.6rem">${esc(r.parent.slice(0,30))}...</span></span>`:''}
+      </div>
+      ${r.coAuthors&&r.coAuthors.length?`
+      <div class="ca-list">
+        ${r.coAuthors.map((c,i)=>`
+          <div class="ca-row">
+            <span class="ca-row-num">${i+1}</span>
+            <span class="ca-row-id">${esc(c.id||'—')}</span>
+            <span class="ca-row-name">${esc(c.name||'—')}</span>
+            <span class="ca-row-type ${c.type==='AI'?'ai':'human'}">${c.type||'HUMAN'}</span>
+          </div>`).join('')}
+      </div>`:''}
+      <div class="date-info">등록: ${fmtDt(r.inputDate)}</div>
+    </div>`).join('');
+}
+
+function updateStats(){
+  document.getElementById('sTot').textContent=recs.length;
+  const td=getNow().slice(0,8);
+  document.getElementById('sToday').textContent=recs.filter(r=>(r.inputDate||'').startsWith(td)).length;
+  document.getElementById('sType').textContent=new Set(recs.map(r=>r.ftype)).size;
+}
+
+// ══════ 탐색기 ══════
+let sortCol='inputDate',sortAsc=false;
+function openExplorer(){ renderExplorer(); document.getElementById('explorerModal').classList.add('open'); }
+function sortBy(col){
+  sortAsc=sortCol===col?!sortAsc:true; sortCol=col;
+  ['title','creator','ftype','country','verify','inputDate'].forEach(c=>{
+    const e=document.getElementById('si-'+c); if(e) e.textContent=c===col?(sortAsc?'↑':'↓'):'↕';
+  });
+  renderExplorer();
+}
+function renderExplorer(){
+  const sorted=[...recs].sort((a,b)=>{ const va=a[sortCol]||'',vb=b[sortCol]||''; return sortAsc?va.localeCompare(vb):vb.localeCompare(va); });
+  document.getElementById('expBody').innerHTML=sorted.map(r=>`
+    <tr>
+      <td>${esc(r.title||'—')}</td><td>${r.creator}</td><td>${r.ftype}</td>
+      <td>${r.country}</td><td>${r.verify}</td><td>${fmtDt(r.inputDate)}</td>
+      <td class="uiid-cell" title="${esc(r.uiid)}">${esc(r.uiid)}</td>
+      <td class="act-cell">
+        <button class="ico-btn" title="복사" onclick="copyRec(${JSON.stringify(r.uiid)});return false;">⎘</button>
+        <button class="ico-btn del" data-del="${r.id}" data-confirm="0" onclick="delRec(${r.id});renderExplorer()">✕</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ══════ 비밀 메모 ══════
+let _secId=null;
+function openPBtn(){ _secId=null; _openSec('미리보기 UIID'); }
+function openSecret(id){ _secId=id; const r=recs.find(x=>x.id===id); _openSec(r?r.title||r.fp.slice(0,20):''); }
+function _openSec(label){
+  const pw=localStorage.getItem(PW_KEY);
+  const unlockAt=parseInt(localStorage.getItem(UNLOCK_KEY)||'0',10);
+  document.getElementById('secRecTitle').textContent=label?'— '+label:'';
+  const r=_secId!=null?recs.find(x=>x.id===_secId):null;
+  if(!pw||Date.now()<unlockAt){
+    document.getElementById('secContent').value=r?r.secret||'':'';
+    document.getElementById('secretContentModal').classList.add('open');
+  } else {
+    document.getElementById('pwMsg').textContent='Enter your password';
+    document.getElementById('pwInput').value='';
+    document.getElementById('secretPwModal').classList.add('open');
+  }
+}
+function confirmPw(){
+  if(document.getElementById('pwInput').value===localStorage.getItem(PW_KEY)){
+    const mins=parseInt(localStorage.getItem(UNLOCK_MIN)||'30',10);
+    localStorage.setItem(UNLOCK_KEY,String(Date.now()+mins*60000));
+    closeModal('secretPwModal');
+    const r=_secId!=null?recs.find(x=>x.id===_secId):null;
+    document.getElementById('secContent').value=r?r.secret||'':'';
+    document.getElementById('secretContentModal').classList.add('open');
+  } else {
+    document.getElementById('pwMsg').textContent='⚠️ Wrong password';
+    document.getElementById('pwInput').value='';
+  }
+}
+function saveSecret(){
+  const content=document.getElementById('secContent').value;
+  if(_secId!=null){ const r=recs.find(x=>x.id===_secId); if(r){ r.secret=content; r.modDate=getNow(); saveRecs(); renderList(); } }
+  closeModal('secretContentModal'); toast('✅ Memo saved!');
+}
+
+// ══════ 비밀번호 ══════
+function savePw(){
+  const p1=document.getElementById('spPw1').value, p2=document.getElementById('spPw2').value;
+  if(!p1){ toast('⚠️ 비밀번호를 입력해 주세요'); return; }
+  if(p1!==p2){ toast('⚠️ 비밀번호가 일치하지 않아요'); return; }
+  const mins=Math.max(1,Math.min(480,parseInt(document.getElementById('spUnlockMin').value||'30',10)));
+  localStorage.setItem(PW_KEY,p1); localStorage.setItem(UNLOCK_MIN,String(mins));
+  document.getElementById('spPw1').value=''; document.getElementById('spPw2').value='';
+  updatePwStatus(); toast('✅ Password saved!');
+}
+function updatePwStatus(){ document.getElementById('pwStatus').textContent=localStorage.getItem(PW_KEY)?'🔐 Password set':'🔓 No password set'; }
+
+// ══════ Export ══════
+function exportJSON(){ dl(new Blob([JSON.stringify(recs,null,2)],{type:'application/json'}),'UIID_export_'+getNow()+'.json'); toast('📤 JSON done!'); }
+function exportCSV(){
+  const h='UIID,Title,Creator,Country,Type,Verify,CoAuthors,Date';
+  const rows=recs.map(r=>[r.uiid,r.title||'',r.creator,r.country,r.ftype,r.verify,r.coCount||0,fmtDt(r.inputDate)].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  dl(new Blob(['\uFEFF'+[h,...rows].join('\n')],{type:'text/csv'}),'UIID_export_'+getNow()+'.csv'); toast('📤 CSV done!');
+}
+function dl(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); }
+function clearAll(){ if(!confirm('모든 데이터를 삭제할까요?')) return; recs=[]; saveRecs(); renderList(); updateStats(); toast('🗑️ Cleared'); }
+
+// ══════ SHA-256 순수 JS 구현 (HTTP 환경 포함 모든 환경 지원) ══════
+async function sha256(data){
+  if(window.isSecureContext&&crypto.subtle){
+    const buf=typeof data==='string'?new TextEncoder().encode(data):data;
+    const h=await crypto.subtle.digest('SHA-256',buf);
+    return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+  }
+  // HTTP 환경용 순수 JS 구현
+  function _sha256(msg){
+    const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+      0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+      0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+      0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+      0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+      0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+      0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+      0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+    let h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
+    const bytes=typeof msg==='string'?new TextEncoder().encode(msg):new Uint8Array(msg);
+    const len=bytes.length;
+    const bits=len*8;
+    const padLen=((len+9+63)>>6)<<6;
+    const padded=new Uint8Array(padLen);
+    padded.set(bytes); padded[len]=0x80;
+    const view=new DataView(padded.buffer);
+    view.setUint32(padLen-4,bits>>>0,false);
+    view.setUint32(padLen-8,Math.floor(bits/0x100000000),false);
+    for(let i=0;i<padLen;i+=64){
+      const w=new Uint32Array(64);
+      for(let j=0;j<16;j++) w[j]=view.getUint32(i+j*4,false);
+      for(let j=16;j<64;j++){
+        const s0=((w[j-15]>>>7)|(w[j-15]<<25))^((w[j-15]>>>18)|(w[j-15]<<14))^(w[j-15]>>>3);
+        const s1=((w[j-2]>>>17)|(w[j-2]<<15))^((w[j-2]>>>19)|(w[j-2]<<13))^(w[j-2]>>>10);
+        w[j]=(w[j-16]+s0+w[j-7]+s1)>>>0;
+      }
+      let[a,b,c,d,e,f,g,h]=[h0,h1,h2,h3,h4,h5,h6,h7];
+      for(let j=0;j<64;j++){
+        const S1=((e>>>6)|(e<<26))^((e>>>11)|(e<<21))^((e>>>25)|(e<<7));
+        const ch=(e&f)^(~e&g);
+        const tmp1=(h+S1+ch+K[j]+w[j])>>>0;
+        const S0=((a>>>2)|(a<<30))^((a>>>13)|(a<<19))^((a>>>22)|(a<<10));
+        const maj=(a&b)^(a&c)^(b&c);
+        const tmp2=(S0+maj)>>>0;
+        h=g;g=f;f=e;e=(d+tmp1)>>>0;d=c;c=b;b=a;a=(tmp1+tmp2)>>>0;
+      }
+      h0=(h0+a)>>>0;h1=(h1+b)>>>0;h2=(h2+c)>>>0;h3=(h3+d)>>>0;
+      h4=(h4+e)>>>0;h5=(h5+f)>>>0;h6=(h6+g)>>>0;h7=(h7+h)>>>0;
+    }
+    return [h0,h1,h2,h3,h4,h5,h6,h7].map(v=>v.toString(16).padStart(8,'0')).join('').toUpperCase();
+  }
+  return _sha256(data);
+}
+
+// ══════ 파일 드롭존 ══════
+let _loadedFileSha='';
+let _loadedFile=null; // ★ Create 폼 드롭존 파일 저장
+let _fileHashForUiid=''; // 파일 SHA-256 앞 12자리 (파일 로드 시 자동 설정)
+
+// 파일 SHA-256이 있으면 → 생성자+날짜+SHA12를 makeHash로 결합 (지문값 완전 결합)
+// 파일 없으면 → 메타데이터 해시 (기존 방식)
+function getActiveHash(cr,uid,ai,dt,co,ft,vf){
+  if(_fileHashForUiid){
+    // ★ 호오 아이디어: 생성자 + 날짜 + 파일SHA12 → makeHash로 하나로 묶기
+    // 셋 중 어느 하나라도 바뀌면 해시값이 완전히 달라짐
+    return makeHash(cr+'-'+uid+'-'+ai+'-'+dt+'-'+_fileHashForUiid);
+  }
+  return makeHash(cr+'-'+uid+'-'+ai+'-'+dt+'-'+co+'-'+ft+'-'+vf);
+}
+function getHashSource(){
+  return _fileHashForUiid ? '생성자+날짜+파일SHA12 결합 해시' : '메타데이터';
+}
+function dzDragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('drag-over');}
+function dzDragLeave(){document.getElementById('dropZone').classList.remove('drag-over');}
+function dzDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)dzLoad(f);}
+async function dzLoad(file){
+  if(!file) return;
+  _loadedFile=file; // ★ 파일 객체 저장
+  const parts=file.name.split('.');
+  const ext=parts.length>1?parts.pop().toUpperCase():'';
+  const title=parts.join('.');
+  const ftMap={'TXT':'TXT','DOCX':'DOCX','DOC':'DOCX','PDF':'PDF','XLSX':'XLSX','XLS':'XLSX',
+    'PPTX':'PPTX','PPT':'PPTX','JPG':'IMG','JPEG':'IMG','PNG':'IMG','GIF':'IMG','WEBP':'IMG',
+    'SVG':'IMG','MP4':'VID','AVI':'VID','MOV':'VID','MKV':'VID','MP3':'AUD','WAV':'AUD',
+    'FLAC':'AUD','AAC':'AUD','HTML':'CODE','HTM':'CODE','JS':'CODE','PY':'CODE',
+    'JAVA':'CODE','CSS':'CODE','JSON':'CODE','HWPX':'DOCX'};
+  const ft=ftMap[ext]||ext||'TXT';
+  const bar=document.getElementById('fileLoadedBar');
+  document.getElementById('flbName').textContent=file.name;
+  document.getElementById('flbSize').textContent='('+_fmtSize(file.size)+')';
+  document.getElementById('flbHash').textContent='⏳ SHA-256 계산 중...';
+  bar.classList.add('show');
+  try{
+    const buf=await file.arrayBuffer();
+    const hex=await sha256(buf);
+    _loadedFileSha=hex;
+    const short=hex.slice(0,12).toUpperCase();
+    _fileHashForUiid=short; // ★ 파일 SHA-256 앞 12자리 저장 (UIID 생성 시 생성자+날짜와 결합됨)
+    document.getElementById('flbHash').textContent='SHA-256 앞12자: '+short+' → 생성자+날짜와 결합하여 UIID 해시값 생성 ✅';
+    // 폼 자동입력
+    document.getElementById('docTitle').value=title;
+    const ftSel=document.getElementById('ftype');
+    // ★ 핵심 수정: 사용자가 이미 파일유형을 Custom Input으로 직접 설정해뒀다면
+    //   파일을 드래그해도 그 값을 덮어쓰지 않고 그대로 유지함(예: PPP).
+    //   기존엔 여기서 파일 확장자로 무조건 재설정해버려서 커스텀 입력이 사라지는 버그가 있었음.
+    if(ftSel.value!=='CUSTOM'){
+      let matched=false;
+      for(let i=0;i<ftSel.options.length;i++){if(ftSel.options[i].value===ft){ftSel.selectedIndex=i;matched=true;break;}}
+      if(!matched){ftSel.value='CUSTOM';toggleCustom('ftype');document.getElementById('ftypeC').value=ft;}
+      else document.getElementById('ftype-custom').classList.remove('show');
+    }
+    saveForm();updatePrev();
+    toast('✅ 파일 로드! 제목·유형·SHA-256 자동입력 완료');
+  }catch(e){
+    document.getElementById('flbHash').textContent='❌ 오류: '+e.message;
+    toast('⚠️ 파일 로드 오류');
+  }
+}
+function dzClear(){
+  document.getElementById('fileLoadedBar').classList.remove('show');
+  document.getElementById('dropFileInput').value='';
+  _loadedFileSha=''; _loadedFile=null;
+  _fileHashForUiid='';
+  updatePrev();
+}
+function _fmtSize(b){if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'KB';return(b/1048576).toFixed(1)+'MB';}
+
+// ══════ Tools ══════
+function switchTool(name){
+  document.querySelectorAll('.tool-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tool-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelector('.tool-tab[data-tool="'+name+'"]').classList.add('active');
+  document.getElementById('pane-'+name).classList.add('active');
+}
+
+// UUID v4
+function genUUID(){
+  const u=([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+  document.getElementById('uuidOut').value=u;
+  toast('✅ UUID 생성!');
+}
+function genMultiUUID(){
+  const n=Math.min(20,Math.max(1,parseInt(document.getElementById('uuidCount').value)||5));
+  const arr=[];
+  for(let i=0;i<n;i++) arr.push(([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)));
+  document.getElementById('uuidMultiOut').value=arr.join('\n');
+  toast('✅ UUID '+n+'개 생성!');
+}
+
+// SHA-256 생성
+async function calcShaText(){
+  const txt=document.getElementById('shaTextIn').value;
+  if(!txt){toast('⚠️ 텍스트를 입력해주세요');return;}
+  document.getElementById('shaOut').value='⏳ 계산 중...';
+  document.getElementById('shaOut12').textContent='';
+  const hex=await sha256(txt);
+  document.getElementById('shaOut').value=hex;
+  document.getElementById('shaOut12').textContent='앞 12자 (UIID Hash): '+hex.slice(0,12);
+  toast('✅ SHA-256 생성 완료!');
+}
+async function calcShaFile(input){
+  const file=input.files[0];
+  if(!file) return;
+  document.getElementById('shaFileName').textContent='📄 '+file.name+' ('+_fmtSize(file.size)+')';
+  document.getElementById('shaOut').value='⏳ 계산 중...';
+  document.getElementById('shaOut12').textContent='';
+  try{
+    const buf=await file.arrayBuffer();
+    const hex=await sha256(buf);
+    document.getElementById('shaOut').value=hex;
+    document.getElementById('shaOut12').textContent='앞 12자 (UIID Hash): '+hex.slice(0,12);
+    toast('✅ 파일 SHA-256 완료!');
+  }catch(e){document.getElementById('shaOut').value='❌ 오류: '+e.message;}
+}
+function copyTool(id){const v=document.getElementById(id).value;if(!v){toast('⚠️ 복사할 값이 없습니다');return;}copyText(v);toast('✅ Copied!');}
+
+// 케이스1: 원본 샤 vs 현재 파일 (무결성 검증)
+async function case1Compare(){
+  const orig=document.getElementById('case1Orig').value.trim().toUpperCase();
+  if(!orig){toast('⚠️ 원본 SHA-256 값을 입력해주세요');return;}
+  const file=document.getElementById('case1File').files[0];
+  if(!file){toast('⚠️ 현재 파일을 선택해주세요');return;}
+  const el=document.getElementById('case1Result');
+  el.textContent='⏳ SHA-256 계산 중...'; el.className='sha-compare-result show';
+  try{
+    const buf=await file.arrayBuffer();
+    const hex=await sha256(buf);
+    const match=orig===hex;
+    el.className='sha-compare-result show '+(match?'sha-match':'sha-nomatch');
+    el.innerHTML=match
+      ?`✅ <b>무결성 확인!</b> 원본과 동일합니다.<br>
+         <span style="font-size:.72rem;font-family:'JetBrains Mono',monospace;">${hex.slice(0,32)}...</span>`
+      :`⚠️ <b>무결성 불일치!</b> 파일이 변조되었거나 다른 파일입니다.<br>
+         <span style="font-size:.72rem;color:var(--text2);">원본: ${orig.slice(0,32)}...<br>현재: ${hex.slice(0,32)}...</span>`;
+    document.getElementById('case1CurSha').value=hex;
+    toast(match?'✅ 원본과 동일!':'⚠️ 변조 감지!');
+  }catch(e){el.textContent='❌ 오류: '+e.message;}
+}
+
+// 케이스2: 두 파일 동일성 비교
+let _cmpShaA='',_cmpShaB='';
+async function loadCmpFile(ab,input){
+  const file=input.files[0];
+  if(!file) return;
+  const nameEl=document.getElementById('cmpName'+ab);
+  if(nameEl) nameEl.textContent='📄 '+file.name;
+  const buf=await file.arrayBuffer();
+  const hex=await sha256(buf);
+  if(ab==='A'){_cmpShaA=hex;document.getElementById('cmpA').value=hex;}
+  else{_cmpShaB=hex;document.getElementById('cmpB').value=hex;}
+  toast('✅ 파일 '+ab+' SHA-256 로드!');
+  // 둘 다 로드되면 자동 비교
+  if(_cmpShaA&&_cmpShaB) compareSha();
+}
+function compareSha(){
+  const a=document.getElementById('cmpA').value.trim().toUpperCase();
+  const b=document.getElementById('cmpB').value.trim().toUpperCase();
+  const el=document.getElementById('cmpResult');
+  if(!a||!b){toast('⚠️ A와 B 값을 모두 입력해주세요');return;}
+  el.classList.add('show');
+  if(a===b){
+    el.className='sha-compare-result show sha-match';
+    el.innerHTML='✅ <b>일치!</b> 두 파일이 완전히 동일합니다.<br><span style="font-size:.72rem;font-family:\'JetBrains Mono\',monospace;">'+a.slice(0,32)+'...</span>';
+  }else{
+    el.className='sha-compare-result show sha-nomatch';
+    el.innerHTML='⚠️ <b>불일치!</b> 두 파일이 다릅니다 (변조 또는 다른 파일).<br><span style="font-size:.72rem;color:var(--text2);">A: '+a.slice(0,16)+'...<br>B: '+b.slice(0,16)+'...</span>';
+  }
+}
+function clearCompare(){
+  ['cmpA','cmpB'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cmpResult').classList.remove('show');
+  ['cmpNameA','cmpNameB'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='';});
+  _cmpShaA='';_cmpShaB='';
+}
+
+async function loadCase1File(input){
+  const file=input.files[0]; if(!file) return;
+  document.getElementById('case1FileName').textContent='📄 '+file.name+' ('+_fmtSize(file.size)+')';
+  document.getElementById('case1CurSha').value='⏳ 계산 중...';
+  try{
+    const buf=await file.arrayBuffer();
+    const hex=await sha256(buf);
+    document.getElementById('case1CurSha').value=hex;
+    toast('✅ 파일 SHA-256 계산 완료!');
+    // 원본 샤가 이미 입력된 경우 자동 비교
+    const orig=document.getElementById('case1Orig').value.trim().toUpperCase();
+    if(orig) case1Compare();
+  }catch(e){document.getElementById('case1CurSha').value='❌ 오류: '+e.message;}
+}
+
+// ══════ UIID Identify ══════
+const FIELD_NAMES=[
+  {k:'creator',  l:'Creator Class',    desc:'생성 주체 (HUM/AI/SYS 등)'},
+  {k:'userId',   l:'Creator USER ID',         desc:'사용자 고유 ID'},
+  {k:'aiCode',   l:'Creator AI ID',         desc:'AI 협업 코드 (000=단독 창작)'},
+  {k:'datetime', l:'Date & Time',     desc:'창작 일시 (초 단위)'},
+  {k:'country',  l:'Language/Country',desc:'언어·국가 코드'},
+  {k:'ftype',    l:'File Type',       desc:'파일 유형'},
+  {k:'verify',   l:'Verify',          desc:'검증 상태'},
+  {k:'hash',     l:'Hash (12)',       desc:'위드 고유 지문값'}
+];
+function parseUIID(raw){
+  const[main,personal]=(raw||'').split('//').map(s=>s.trim());
+  const parts=main.split(/[-\s·]+/).filter(Boolean);
+  if(parts.length<7) return null;
+  return{creator:parts[0]||'',userId:parts[1]||'',aiCode:parts[2]||'',
+    datetime:parts[3]||'',country:parts[4]||'',ftype:parts[5]||'',
+    verify:parts[6]||'',hash:parts[7]||'',personal:personal||''};
+}
+function fmtDtParsed(s){
+  if(!s||s.length<8) return s;
+  return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8)+
+    (s.length>=12?' '+s.slice(8,10)+':'+s.slice(10,12):'')+
+    (s.length>=14?':'+s.slice(12,14):'');
+}
+function verifyLabel(v){return{V:'✅ Verified',U:'⚠️ Unverified',R:'🔄 Under Review',D:'📝 Draft'}[v]||v;}
+async function runIdentify(){
+  const raw=document.getElementById('idInput').value.trim();
+  if(!raw){toast('⚠️ UIID 코드를 입력해주세요');return;}
+  const p=parseUIID(raw);
+  const res=document.getElementById('idResult');
+  const fieldsEl=document.getElementById('idFields');
+  const statusEl=document.getElementById('idStatusRow');
+  const detailEl=document.getElementById('idDetailBox');
+  const shaRow=document.getElementById('idShaRow');
+  if(!p){
+    res.classList.add('show'); fieldsEl.innerHTML='';
+    statusEl.innerHTML='<span class="id-badge id-badge-local-no">❌ 파싱 실패 — 올바른 UIID 형식이 아닙니다</span>';
+    detailEl.innerHTML='<span style="color:var(--danger)">형식: CreatorType-UserID-AICode-DateTime-Country-FileType-Verify-Hash</span>';
+    shaRow.style.display='none'; return;
+  }
+  const vals=[p.creator,p.userId,p.aiCode,p.datetime,p.country,p.ftype,p.verify,p.hash];
+  fieldsEl.innerHTML=FIELD_NAMES.map((f,i)=>`
+    <div class="id-field-card"><div class="id-field-label">${f.l}</div>
+    <div class="id-field-val">${esc(vals[i]||'—')}</div>
+    <div class="id-field-desc">${i===3?fmtDtParsed(vals[i]):f.desc}</div></div>`).join('');
+  const localMatch=recs.filter(r=>(r.fp||'').includes(p.hash));
+  const hashRegenOld=makeHash(p.creator+'-'+p.userId+'-'+p.aiCode+'-'+p.datetime+'-'+p.country+'-'+p.ftype+'-'+p.verify);
+  // 신버전: 파일SHA12 기반 (파일 없으면 검증 불가)
+  const hashOldOk=(hashRegenOld===p.hash);
+  const hashRegen=hashRegenOld; // 표시용
+  const hashOk=hashOldOk; // 파일 없을 때는 구버전만 확인 가능
+  let globalMatch=[];
+  try{globalMatch=await sbFetch('/rest/v1/documents?hash=eq.'+encodeURIComponent(p.hash)+'&select=fingerprint,title,created_at');}catch{}
+  statusEl.innerHTML=[
+    hashOk?'<span class="id-badge id-badge-hash-ok">✅ 위드 Hash 무결성 확인</span>':'<span class="id-badge id-badge-hash-no">⚠️ 위드 Hash 불일치</span>',
+    localMatch.length>0?`<span class="id-badge id-badge-local-ok">💾 로컬DB ${localMatch.length}건</span>`:'<span class="id-badge id-badge-local-no">💾 로컬DB 미등록</span>',
+    globalMatch.length>0?'<span class="id-badge id-badge-global-ok">🌐 글로벌 등록됨</span>':'<span class="id-badge id-badge-global-no">🌐 글로벌 미등록</span>'
+  ].join('');
+  const aiDesc=p.aiCode==='000'?'단독 창작':p.aiCode==='CLAUDX789'?'Claude(OHo) 협업':p.aiCode==='GPT4X001'?'GPT-4 협업':p.aiCode==='MYP'?'MyPro 협업':'AI 협업('+p.aiCode+')';
+  detailEl.innerHTML=`<span class="hl">창작주체</span> ${esc(p.creator)} | <span class="hl">사용자ID</span> ${esc(p.userId)} | <span class="hl">AI</span> ${esc(aiDesc)}<br>
+    <span class="hl">창작일시</span> ${fmtDtParsed(p.datetime)} | <span class="hl">국가</span> ${esc(p.country)} | <span class="hl">유형</span> ${esc(p.ftype)}<br>
+    <span class="hl">검증상태</span> ${verifyLabel(p.verify)} | <span class="hl">위드Hash</span> ${hashOk?'✅ 일치 (구버전 해시)':'⚠️ 불일치 — 신버전 해시(파일 업로드 시 검증) 또는 구버전 불일치'} (재계산: ${hashRegen})
+    ${p.personal?'<br><span class="hl">개인코드</span> '+esc(p.personal):''}
+    ${localMatch.length>0?'<br><span class="hl">로컬매칭</span> '+localMatch.map(r=>esc(r.title||r.fp)).join(', '):''}
+    ${globalMatch.length>0?'<br><span class="hl">글로벌등록</span> '+esc(globalMatch[0].title||'(제목없음)')+' — '+esc(globalMatch[0].created_at?.slice(0,10)||''):''}`;
+  shaRow.style.display='flex';
+  document.getElementById('idShaVal').textContent='원본 파일을 선택하면 파일 무결성(SHA-256)도 검증할 수 있어요 🔐';
+  res.classList.add('show'); toast('🔍 UIID 식별·검증 완료!');
+}
+function clearIdentify(){
+  document.getElementById('idInput').value='';
+  document.getElementById('idResult').classList.remove('show');
+  ['idFields','idStatusRow','idDetailBox'].forEach(id=>document.getElementById(id).innerHTML='');
+  document.getElementById('idShaRow').style.display='none';
+}
+async function calcSha256(input){
+  const file=input.files[0]; if(!file) return;
+  const shaVal=document.getElementById('idShaVal');
+  shaVal.textContent='⏳ SHA-256 계산 중...';
+  try{
+    const buf=await file.arrayBuffer();
+    const hex=await sha256(buf);
+    const short=hex.slice(0,12).toUpperCase();
+    const p=parseUIID(document.getElementById('idInput').value.trim());
+    // 신버전 해시 검증: makeHash(cr+uid+ai+dt+sha12)
+    const hashNew=p?makeHash(p.creator+'-'+p.userId+'-'+p.aiCode+'-'+p.datetime+'-'+short):'';
+    const matchNew=p&&hashNew===p.hash;
+    // 구버전도 확인
+    const hashOld=p?makeHash(p.creator+'-'+p.userId+'-'+p.aiCode+'-'+p.datetime+'-'+p.country+'-'+p.ftype+'-'+p.verify):'';
+    const matchOld=p&&hashOld===p.hash;
+    // SHA-256 앞12자 직접 비교 (레거시)
+    const matchDirect=p&&short===p.hash;
+    const anyMatch=matchNew||matchOld||matchDirect;
+    const matchType=matchNew?'신버전(파일+메타 결합해시)':matchOld?'구버전(메타데이터 해시)':matchDirect?'레거시(SHA12 직접)':'';
+    shaVal.innerHTML=`<span style="color:${anyMatch?'var(--success)':'var(--danger)'}">${anyMatch?'✅ 파일 무결성 확인! ('+matchType+')':'⚠️ 불일치 — 변조 또는 다른 파일'}</span><br>
+    <span style="font-size:.68rem;color:var(--text2)">파일 SHA-256 앞12자: <b>${short}</b> | 위드Hash: <b>${p?p.hash:'—'}</b><br>
+    신버전 재계산: <b>${hashNew}</b> | 구버전 재계산: <b>${hashOld}</b></span>`;
+    toast(anyMatch?'✅ 파일 무결성 확인!':'⚠️ SHA-256 불일치');
+  }catch(e){shaVal.textContent='❌ 오류: '+e.message;}
+}
+
+// ══════ 색상 테마 ══════
+// --bg  = 중간 바탕화면 (body 배경, 회색 영역)
+// --bg2 = 메인 바탕화면 (흰 카드 배경)
+// --bg3 = 항목 바탕화면 (input/select 배경)
+let curTgt=0;
+
+const FULL_PRE=[
+  {l:'블루라임',  bg:'#dce8f8',b2:'#f5faff',b3:'#b8d4f0',lt:true},
+  {l:'크림베이지',bg:'#e0d8c8',b2:'#fdf9f3',b3:'#c8bc9e',lt:true},
+  {l:'로즈핑크', bg:'#e8d0d4',b2:'#fff6f7',b3:'#cca4ac',lt:true},
+  {l:'세이지민트',bg:'#c4d8cc',b2:'#f4fbf7',b3:'#9abcac',lt:true},
+  {l:'다크네이비',bg:'#0f1117',b2:'#1a1d2e',b3:'#252840',lt:false},
+  {l:'다크퍼플', bg:'#1a0d2e',b2:'#2a1848',b3:'#3a2460',lt:false},
+  {l:'다크그린', bg:'#0a1f0f',b2:'#142a1a',b3:'#1e3826',lt:false},
+  {l:'다크앰버', bg:'#1a1200',b2:'#2e2000',b3:'#3e2e00',lt:false},
+];
+const BLOCK_PRE={
+  1:['#ffffff','#fafbff','#f5f7ff','#fff9f0','#fff5f5','#f5fff8','#f8f5ff','#fffdf0','#f0f8ff','#f5f5f5'],
+  2:['#e0e8f5','#d4e0f0','#c8d8e8','#d8d0c0','#d8c8cc','#c4d4cc','#d8d0e0','#c8d8d0','#d0d0d0','#b8b8c8'],
+  3:['#c8d8f0','#bccce8','#b0c4e0','#c8b8a0','#c8a8b0','#a8c4b4','#c0b8d0','#a8c0c8','#b8b8b8','#a8a8c0'],
+};
+
+function renderPresets(){
+  const grid=document.getElementById('pgFull');
+  if(curTgt===0){
+    grid.innerHTML=FULL_PRE.map((p,i)=>`
+      <div class="preset-item" onclick="applyFullPre(${i})">
+        <div style="width:34px;height:34px;border-radius:50%;border:2px solid #ccc;position:relative;overflow:hidden;cursor:pointer;transition:transform .18s;" title="${p.l}" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+          <div style="position:absolute;inset:0;background:${p.bg};"></div>
+          <div style="position:absolute;inset:5px;border-radius:50%;background:${p.b2};"></div>
+          <div style="position:absolute;inset:11px;border-radius:50%;background:${p.b3};"></div>
+        </div>
+        <div class="preset-lbl">${p.l}</div>
+      </div>`).join('');
+  } else {
+    const colors=BLOCK_PRE[curTgt]||BLOCK_PRE[1];
+    grid.innerHTML=colors.map(c=>`
+      <div class="preset-item" onclick="applyBlockPre('${c}')">
+        <div class="swatch" style="background:${c};border:1px solid #ccc;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'"></div>
+        <div class="preset-lbl">${c.slice(1)}</div>
+      </div>`).join('');
+  }
+}
+
+function selectTgt(n){
+  curTgt=n;
+  [0,1,2,3].forEach(i=>{
+    const b=document.getElementById('tgt-'+i);
+    if(b) b.classList.toggle('active',i===n);
+  });
+  const labels=['전체 배경색 프리셋','메인 바탕화면 색상','중간 바탕화면 색상','항목 바탕화면 색상'];
+  document.getElementById('presetTitle').textContent=labels[n];
+  renderPresets();
+}
+
+function applyFullPre(i){
+  const p=FULL_PRE[i];
+  _applyColors(p.bg,p.b2,p.b3,p.lt);
+  document.getElementById('colorPicker').value=p.bg;
+  document.getElementById('hexIn').value=p.bg;
+  _saveColor();
+  toast('🎨 '+p.l+' 적용!');
+}
+
+function applyBlockPre(c){
+  _applyTargetColor(c);
+  document.getElementById('colorPicker').value=c;
+  document.getElementById('hexIn').value=c;
+  _saveColor();
+}
+
+// ★ 각 대상 버튼에 맞는 CSS 변수에 정확히 적용
+function _applyTargetColor(c){
+  const r=document.documentElement.style;
+  if(curTgt===1){
+    r.setProperty('--bg',c);         // 메인 버튼 → 중간(body) 배경 변경
+  } else if(curTgt===2){
+    r.setProperty('--bg2',c);        // 중간 버튼 → 메인(카드) 배경 변경
+  } else if(curTgt===3){
+    r.setProperty('--bg3',c);        // 항목 바탕화면
+  } else {
+    // 전체배경색: 3단계 자동 계산
+    const lt=_isLt(c);
+    if(lt){
+      const b2=_mix(c,'#ffffff',0.55);
+      const b3=_mix(c,'#ffffff',0.3);
+      _applyColors(c,b2,b3,true);
+    } else {
+      _applyColors(c,_ltn(c,16),_ltn(c,30),false);
+    }
+    document.getElementById('colorPicker').value=c;
+    document.getElementById('hexIn').value=c;
+  }
+  _saveColor();
+}
+
+function applyDayNight(mode){
+  if(mode==='day'){
+    _applyColors('#dce8f8','#f5faff','#b8d4f0',true);
+    document.getElementById('colorPicker').value='#dce8f8';
+    document.getElementById('hexIn').value='#dce8f8';
+  } else {
+    _applyColors('#0f1117','#1a1d2e','#252840',false);
+    document.getElementById('colorPicker').value='#0f1117';
+    document.getElementById('hexIn').value='#0f1117';
+  }
+  _saveColor();
+  toast(mode==='day'?'☀️ 낮 모드 적용!':'🌙 밤 모드 적용!');
+}
+
+function applyCustomColor(){
+  const h=document.getElementById('hexIn').value.trim();
+  if(!/^#[0-9a-fA-F]{6}$/.test(h)){ toast('⚠️ #RRGGBB 형식으로 입력'); return; }
+  _applyTargetColor(h);
+}
+
+function syncHex(v){ document.getElementById('hexIn').value=v; }
+function syncPicker(v){ if(/^#[0-9a-fA-F]{6}$/.test(v)) document.getElementById('colorPicker').value=v; }
+
+function _applyColors(bg,b2,b3,lt){
+  const r=document.documentElement.style;
+  r.setProperty('--bg',bg); r.setProperty('--bg2',b2); r.setProperty('--bg3',b3);
+  if(lt){ r.setProperty('--text','#1a1d2e'); r.setProperty('--text2','#555a7a'); r.setProperty('--border','#d0d4e8'); }
+  else  { r.setProperty('--text','#e8eaf6'); r.setProperty('--text2','#9099c0'); r.setProperty('--border','#2e3255'); }
+}
+function _mix(c1,c2,t){
+  const n1=parseInt(c1.slice(1),16),n2=parseInt(c2.slice(1),16);
+  return '#'+[16,8,0].map(s=>Math.round(((n1>>s)&0xff)*(1-t)+((n2>>s)&0xff)*t).toString(16).padStart(2,'0')).join('');
+}
+function _ltn(h,a){
+  const n=parseInt(h.slice(1),16);
+  return '#'+[16,8,0].map(s=>Math.min(255,((n>>s)&0xff)+a).toString(16).padStart(2,'0')).join('');
+}
+function _isLt(h){ const n=parseInt(h.slice(1),16); return((n>>16)*299+((n>>8)&0xff)*587+(n&0xff)*114)/1000>128; }
+
+function _saveColor(){
+  try{
+    const s=getComputedStyle(document.documentElement);
+    localStorage.setItem('uiid_v7_color',JSON.stringify({
+      bg:s.getPropertyValue('--bg').trim(),
+      b2:s.getPropertyValue('--bg2').trim(),
+      b3:s.getPropertyValue('--bg3').trim(),
+      text:s.getPropertyValue('--text').trim(),
+      text2:s.getPropertyValue('--text2').trim(),
+      border:s.getPropertyValue('--border').trim()
+    }));
+  }catch{}
+}
+function _loadColor(){
+  try{
+    const c=JSON.parse(localStorage.getItem('uiid_v7_color'));
+    if(!c) return;
+    const r=document.documentElement.style;
+    if(c.bg){ r.setProperty('--bg',c.bg); r.setProperty('--bg2',c.b2); r.setProperty('--bg3',c.b3); }
+    if(c.text){ r.setProperty('--text',c.text); r.setProperty('--text2',c.text2); r.setProperty('--border',c.border); }
+    document.getElementById('colorPicker').value=c.bg||'#f0f4ff';
+    document.getElementById('hexIn').value=c.bg||'#f0f4ff';
+  }catch{}
+}
+
+// ══════ 패널 / 모달 ══════
+function togglePanel(name){
+  const pid=name==='color'?'colorPanel':'settingsPanel';
+  const oid=name==='color'?'settingsPanel':'colorPanel';
+  document.getElementById(oid).classList.remove('open');
+  document.getElementById(pid).classList.toggle('open');
+}
+document.addEventListener('click',function(e){
+  ['colorPanel','settingsPanel'].forEach(function(pid){
+    const btn=document.getElementById(pid==='colorPanel'?'paletteBtn':'settingsBtn');
+    const panel=document.getElementById(pid);
+    if(panel.classList.contains('open')&&!panel.contains(e.target)&&!btn.contains(e.target))
+      panel.classList.remove('open');
+  });
+});
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ══════ 원클릭 통합 ══════
+let _ocFile=null, _ocSha='';
+
+function ocDragOver(e){e.preventDefault();document.getElementById('ocDrop').classList.add('drag-over');}
+function ocDragLeave(){document.getElementById('ocDrop').classList.remove('drag-over');}
+function ocDropFile(e){
+  e.preventDefault();ocDragLeave();
+  const f=e.dataTransfer.files[0];
+  if(!f)return;
+  const dt=new DataTransfer();dt.items.add(f);
+  document.getElementById('ocFileInput').files=dt.files;
+  ocLoadFile({files:[f]});
+}
+async function ocLoadFile(inp){
+  const f=inp.files&&inp.files[0];if(!f)return;
+  _ocFile=f;_ocSha='';
+  document.getElementById('ocFileName').textContent=f.name;
+  document.getElementById('ocFileSize').textContent='('+_fmtSize(f.size)+')';
+  document.getElementById('ocFileSha').textContent='⏳ SHA-256 계산 중...';
+  document.getElementById('ocLoaded').classList.add('show');
+  document.getElementById('ocBtn').disabled=true;
+  document.getElementById('ocProgress').className='oc-progress';
+  document.getElementById('ocFinal').className='oc-final';
+  // SHA-256 계산
+  try{
+    const buf=await f.arrayBuffer();
+    _ocSha=await sha256(buf);
+    document.getElementById('ocFileSha').textContent='SHA-256: '+_ocSha.slice(0,16)+'...';
+    document.getElementById('ocBtn').disabled=false;
+    toast('✅ 파일 준비 완료! 버튼을 눌러주세요 ^^');
+  }catch(e){
+    document.getElementById('ocFileSha').textContent='⚠️ SHA-256 오류';
+  }
+}
+
+function ocSetStep(n,state,msg){
+  const el=document.getElementById('ocS'+n);
+  const txt=document.getElementById('ocS'+n+'txt');
+  el.className='oc-step-item '+state;
+  if(msg) txt.textContent=msg;
+}
+
+// ══════════════════════════════════════════════════════════════
+// ★ v11_final 패치 — 공용 UIID 스탬프 엔진
+//   원클릭(ONE-CLICK) / 다클릭(Register 폼) / 방식B(Tools) 세 기능이
+//   모두 이 엔진 하나만 사용하도록 통일함.
+//   → "다클릭은 txt만 되고 다른 확장자는 _UD가 안 만들어진다" 버그 해결
+//   → docx/xlsx가 열리지 않던 문제([Content_Types].xml 누락) 해결
+//   → PDF 한글 깨짐(폰트가 한글을 지원하지 않던 문제) 해결
+// ══════════════════════════════════════════════════════════════
+
+// [Content_Types].xml에 파트 선언(Override)이 없으면 추가.
+// 이게 빠지면 워드/엑셀이 해당 파트를 "인식 못하는 손상된 내용"으로 보고
+// 아예 못 열거나 복구 경고를 띄우게 됨 — docx/xlsx가 안 열리던 핵심 원인.
+async function ensureContentTypeOverride(zip,partName,contentType){
+  const ctFile=zip.file('[Content_Types].xml');
+  if(!ctFile) return;
+  let ctXml=await ctFile.async('string');
+  if(ctXml.includes('PartName="'+partName+'"')) return;
+  ctXml=ctXml.replace('</Types>','<Override PartName="'+partName+'" ContentType="'+contentType+'"/>\n</Types>');
+  zip.file('[Content_Types].xml',ctXml,{createFolders:false});
+}
+
+// [Content_Types].xml에 확장자 단위 기본 선언(Default)이 없으면 추가.
+// docProps/uiid_sheet.json처럼 .json 확장자는 OOXML 표준에 기본 선언이 없어서
+// 이 선언이 없으면 "내용 타입을 알 수 없는 파트"가 되어 엑셀이 파일을 열 때
+// "내용에 문제가 있습니다" 복구 경고를 띄우는 핵심 원인이었음.
+async function ensureContentTypeDefault(zip,ext,contentType){
+  const ctFile=zip.file('[Content_Types].xml');
+  if(!ctFile) return;
+  let ctXml=await ctFile.async('string');
+  if(ctXml.includes('Extension="'+ext+'"')) return;
+  ctXml=ctXml.replace('</Types>','<Default Extension="'+ext+'" ContentType="'+contentType+'"/>\n</Types>');
+  zip.file('[Content_Types].xml',ctXml,{createFolders:false});
+}
+
+// document.xml의 <w:sectPr>에 footerReference 삽입.
+// 기존 코드는 속성이 붙은 <w:sectPr w:rsidR="..."> 형태나 자기닫힘 <w:sectPr/> 형태를
+// 정규식이 못 잡아서 조용히 실패했었음(=푸터가 저장은 되는데 문서에 연결이 안 됨).
+function insertFooterReference(docXml,relId){
+  if(docXml.includes('w:footerReference')) return docXml;
+  let out=docXml.replace(/<w:sectPr([^>]*)\/>/,(m,attrs)=>'<w:sectPr'+attrs+'><w:footerReference w:type="default" r:id="'+relId+'"/></w:sectPr>');
+  if(out!==docXml) return out;
+  out=docXml.replace(/<w:sectPr([^>]*)>/,(m,attrs)=>'<w:sectPr'+attrs+'><w:footerReference w:type="default" r:id="'+relId+'"/>');
+  return out;
+}
+
+// DOCX용 UIID 푸터 삽입 (footer1.xml + 관계 + sectPr 참조 + Content_Types 등록까지 한번에)
+async function stampDocxZip(zip,uiid){
+  const footerXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">\n  <w:p><w:pPr><w:jc w:val="center"/><w:rPr><w:color w:val="888888"/><w:sz w:val="14"/></w:rPr></w:pPr>\n    <w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="14"/><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕"/></w:rPr>\n      <w:t xml:space="preserve">UIID: ${uiid}</w:t></w:r></w:p></w:ftr>`;
+  // ★ createFolders:false — JSZip이 word/ 등 상위 폴더를 빈 디렉터리 항목으로
+  //   자동 생성하는 걸 막음(정품 워드/엑셀 파일에는 이런 디렉터리 항목이 없음 → 이질적인 구조가
+  //   엑셀의 "내용에 문제가 있습니다" 복구 경고 원인 중 하나였을 수 있어 안전하게 제거)
+  zip.file('word/footer1.xml',footerXml,{createFolders:false});
+
+  const relsPath='word/_rels/document.xml.rels';
+  const relsFile=zip.file(relsPath);
+  if(relsFile){
+    let relsXml=await relsFile.async('string');
+    if(!relsXml.includes('footer1.xml')){
+      relsXml=relsXml.replace('</Relationships>','<Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>\n</Relationships>');
+      zip.file(relsPath,relsXml,{createFolders:false});
+    }
+  }
+  const docFile=zip.file('word/document.xml');
+  if(docFile){
+    let docXml=await docFile.async('string');
+    docXml=insertFooterReference(docXml,'rIdFooter1');
+    zip.file('word/document.xml',docXml,{createFolders:false});
+  }
+  // ★ 핵심 수정: footer1.xml을 [Content_Types].xml에 반드시 등록
+  await ensureContentTypeOverride(zip,'/word/footer1.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml');
+}
+
+// XLSX·PPTX용 UIID 커스텀 속성 삽입 (관계 + Content_Types 등록까지 한번에)
+async function stampOfficeXmlZip(zip,uiid){
+  const customXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">\n  <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="UIID"><vt:lpwstr>${uiid}</vt:lpwstr></property>\n</Properties>`;
+  zip.file('docProps/custom.xml',customXml,{createFolders:false});
+
+  const relsFile=zip.file('_rels/.rels');
+  if(relsFile){
+    let relsXml=await relsFile.async('string');
+    if(!relsXml.includes('custom.xml')){
+      relsXml=relsXml.replace('</Relationships>','<Relationship Id="rIdCustom" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/>\n</Relationships>');
+      zip.file('_rels/.rels',relsXml,{createFolders:false});
+    }
+  }
+  // ★ 핵심 수정: custom.xml을 [Content_Types].xml에 반드시 등록
+  await ensureContentTypeOverride(zip,'/docProps/custom.xml','application/vnd.openxmlformats-officedocument.custom-properties+xml');
+}
+
+// ── PDF 한글 폰트 확보 ──
+// pdf-lib 표준 14폰트(Helvetica 등)는 한글(Hangul) 글리프가 아예 없어서
+// 기존 코드는 uiid.replace(/[^\x20-\x7E]/g,'?')로 한글을 통째로 "?"로 치환해
+// 임시 방편으로 크래시만 막고 있었음(= "소봉15"가 "??15"로 깨지던 원인).
+// fontkit + 한글 트루타입 폰트를 CDN에서 받아와 임베드하면 한글이 그대로 표시됨.
+// (사용자 브라우저에 인터넷 연결이 필요 — 이미 JSZip·PDFLib도 CDN에서 불러오고 있음)
+let _koPdfFontBytes=null,_koPdfFontTried=false;
+const KO_PDF_FONT_URLS=[
+  'https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/public/static/Pretendard-Regular.ttf',
+  'https://cdn.jsdelivr.net/gh/google/fonts/ofl/nanumgothic/NanumGothic-Regular.ttf',
+  'https://raw.githubusercontent.com/google/fonts/main/ofl/nanumgothic/NanumGothic-Regular.ttf'
+];
+async function _fetchKoreanFontBytes(){
+  for(const url of KO_PDF_FONT_URLS){
+    try{
+      const res=await fetch(url);
+      if(!res.ok) continue;
+      const buf=await res.arrayBuffer();
+      if(buf && buf.byteLength>1000) return buf; // 너무 작으면 오류 페이지일 가능성 → 다음 후보 시도
+    }catch(e){ /* 다음 후보로 계속 */ }
+  }
+  return null;
+}
+async function embedKoreanPdfFont(pdfDoc){
+  try{
+    if(!window.fontkit) return null;
+    if(!pdfDoc.__uiidFontkitRegistered){
+      pdfDoc.registerFontkit(window.fontkit);
+      pdfDoc.__uiidFontkitRegistered=true;
+    }
+    if(!_koPdfFontBytes && !_koPdfFontTried){
+      _koPdfFontTried=true;
+      _koPdfFontBytes=await _fetchKoreanFontBytes();
+      if(!_koPdfFontBytes) console.warn('한글 PDF 폰트를 어디서도 받아오지 못했어요. 기본 폰트로 대체합니다.');
+    }
+    if(_koPdfFontBytes){
+      // ★ 중요: subset:true(글꼴 부분추출)로 임베드하면 pdf-lib가 일부 트루타입 한글 폰트에서
+      //   글리프를 잘못 잘라내 대부분의 글자가 아예 안 보이는(빈 칸/깨짐) 버그가 있음을
+      //   실제 렌더링 테스트로 확인함. subset:false(폰트 전체 포함)로 임베드해야
+      //   한글이 항상 정확하게 표시됨 — 파일 용량은 조금 커지지만 안전함을 우선함.
+      return await pdfDoc.embedFont(_koPdfFontBytes,{subset:false});
+    }
+  }catch(e){
+    console.warn('한글 PDF 폰트 임베드 실패, 기본 폰트로 대체:',e);
+  }
+  return null;
+}
+
+// PDF Info 딕셔너리 문자열(PDFDocEncoding)은 한글을 못 담아서 깨짐(테스트로 확인됨:
+// "사과31" → "¬ü31") — UTF-8로 인코딩한 뒤 base64로 ASCII화해서 저장/복원함.
+function _b64encodeUtf8(str){
+  const bytes=new TextEncoder().encode(str);
+  let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function _b64decodeUtf8(b64){
+  const bin=atob(b64);
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+// PDF 바이트에 UIID 스탬프 삽입 (한글 폰트 우선 시도 → 실패하면 안전하게 ?로 대체)
+// sheet(선택): 위드 이력 배열을 넘기면 Info 딕셔너리의 커스텀 키(/UIIDSheet)에 JSON으로
+//   저장함 — docx/xlsx가 docProps/uiid_sheet.json에 이력을 저장하는 것과 같은 목적.
+//   PDF Info 딕셔너리는 표준 PDF 기능이라 대부분의 뷰어/편집기에서 보존됨.
+async function stampPdfBytes(buf,uiid,pos,sheet){
+  const pdf=await PDFLib.PDFDocument.load(buf,{ignoreEncryption:true});
+  let font=await embedKoreanPdfFont(pdf);
+  let text='UIID: '+uiid;
+  if(!font){
+    font=await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+    text='UIID: '+uiid.replace(/[^\x20-\x7E]/g,'?');
+  }
+  pdf.getPages().forEach(page=>{
+    const{width,height}=page.getSize();
+    const maxW=width-20;
+    // ★ 중요: maxWidth를 drawText에 넘기면 pdf-lib가 자동 줄바꿈을 하는데,
+    //   y=12처럼 페이지 맨 아래에 찍을 땐 줄바꿈된 두번째 줄이 페이지 밖(y<0)으로
+    //   밀려나 통째로 안 보이는 버그가 있었음(글자가 "깨진"게 아니라 "안 보였던" 원인).
+    //   → 줄바꿈 대신 폭에 맞춰 폰트 크기를 자동으로 줄여서 항상 한 줄로만 표시.
+    let size=7;
+    let tw=font.widthOfTextAtSize(text,size);
+    if(tw>maxW && tw>0){ size=Math.max(4,size*maxW/tw); }
+    const y=pos==='top'?height-12-size:12;
+    page.drawText(text,{x:10,y,size,font,color:PDFLib.rgb(0.4,0.4,0.4)});
+  });
+  if(sheet && sheet.length){
+    try{
+      const info=pdf.getInfoDict();
+      info.set(PDFLib.PDFName.of('UIIDSheet'),PDFLib.PDFString.of(_b64encodeUtf8(JSON.stringify(sheet))));
+    }catch(e){ console.warn('PDF 위드 이력 저장 실패(스탬프 자체는 정상):',e); }
+  }
+  return await pdf.save();
+}
+// 기존 PDF에서 위드 이력(/UIIDSheet) 읽기 — 없으면 빈 배열
+async function readPdfSheet(buf){
+  try{
+    const pdf=await PDFLib.PDFDocument.load(buf,{ignoreEncryption:true});
+    const info=pdf.getInfoDict();
+    const val=info.get(PDFLib.PDFName.of('UIIDSheet'));
+    if(val){ return JSON.parse(_b64decodeUtf8(val.asString())); }
+  }catch(e){ /* 위드 이력 없음 또는 읽기 실패 */ }
+  return [];
+}
+
+// ══════════════════════════════════════════════════════════════
+// ★ PNG 위드 이력(계보) 임베드 — docx/xlsx가 docProps/uiid_sheet.json에
+//   이력을 저장하는 것과 같은 목적을, PNG는 ZIP이 아니라서 파일 자체의
+//   표준 메타데이터 청크(iTXt)에 저장함. 한글이 들어가도 안전하도록
+//   Latin-1 전용 tEXt가 아니라 UTF-8을 지원하는 iTXt 청크를 사용.
+// ══════════════════════════════════════════════════════════════
+let _pngCrcTable=null;
+function _pngCrc32(bytes){
+  if(!_pngCrcTable){
+    _pngCrcTable=new Uint32Array(256);
+    for(let n=0;n<256;n++){
+      let c=n;
+      for(let k=0;k<8;k++){ c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); }
+      _pngCrcTable[n]=c>>>0;
+    }
+  }
+  let crc=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++){ crc=_pngCrcTable[(crc^bytes[i])&0xFF]^(crc>>>8); }
+  return (crc^0xFFFFFFFF)>>>0;
+}
+function _pngBuildChunk(type,dataBytes){
+  const len=dataBytes.length;
+  const out=new Uint8Array(4+4+len+4);
+  const dv=new DataView(out.buffer);
+  dv.setUint32(0,len,false);
+  for(let i=0;i<4;i++) out[4+i]=type.charCodeAt(i);
+  out.set(dataBytes,8);
+  const crc=_pngCrc32(out.subarray(4,8+len));
+  dv.setUint32(8+len,crc,false);
+  return out;
+}
+// PNG 바이트에 iTXt(keyword=UIIDSheet) 청크를 IEND 직전에 삽입
+function pngInjectText(bytes,keyword,text){
+  const enc=new TextEncoder();
+  const kwBytes=enc.encode(keyword);
+  const textBytes=enc.encode(text);
+  const data=new Uint8Array(kwBytes.length+1+1+1+1+1+textBytes.length);
+  let o=0;
+  data.set(kwBytes,o); o+=kwBytes.length;
+  data[o++]=0;  // keyword 뒤 널 종료
+  data[o++]=0;  // compression flag = 0(비압축)
+  data[o++]=0;  // compression method
+  data[o++]=0;  // language tag = 빈 문자열 + 널
+  data[o++]=0;  // translated keyword = 빈 문자열 + 널
+  data.set(textBytes,o); o+=textBytes.length;
+  const chunk=_pngBuildChunk('iTXt',data.subarray(0,o));
+
+  let pos=8,iendOffset=bytes.length;
+  while(pos+8<=bytes.length){
+    const len=new DataView(bytes.buffer,bytes.byteOffset+pos,4).getUint32(0,false);
+    const type=String.fromCharCode(bytes[pos+4],bytes[pos+5],bytes[pos+6],bytes[pos+7]);
+    if(type==='IEND'){ iendOffset=pos; break; }
+    pos+=8+len+4;
+  }
+  const out=new Uint8Array(bytes.length+chunk.length);
+  out.set(bytes.subarray(0,iendOffset),0);
+  out.set(chunk,iendOffset);
+  out.set(bytes.subarray(iendOffset),iendOffset+chunk.length);
+  return out;
+}
+// PNG 바이트에서 iTXt(keyword) 청크 텍스트 읽기 — 없으면 null
+function pngReadText(bytes,keyword){
+  let pos=8;
+  while(pos+8<=bytes.length){
+    const dv=new DataView(bytes.buffer,bytes.byteOffset+pos,8);
+    const len=dv.getUint32(0,false);
+    const type=String.fromCharCode(bytes[pos+4],bytes[pos+5],bytes[pos+6],bytes[pos+7]);
+    const dataStart=pos+8;
+    if(type==='iTXt'){
+      const cd=bytes.subarray(dataStart,dataStart+len);
+      let i=0; while(i<cd.length&&cd[i]!==0) i++;
+      const kw=new TextDecoder('latin1').decode(cd.subarray(0,i));
+      if(kw===keyword){
+        let p=i+1+2; // 널 + compression flag/method 2바이트 건너뜀
+        while(p<cd.length&&cd[p]!==0) p++; p++; // language tag
+        while(p<cd.length&&cd[p]!==0) p++; p++; // translated keyword
+        return new TextDecoder('utf-8').decode(cd.subarray(p));
+      }
+    }
+    if(type==='IEND') break;
+    pos=dataStart+len+4;
+  }
+  return null;
+}
+// 기존 PNG에서 위드 이력(iTXt keyword=UIIDSheet) 읽기 — 없으면 빈 배열
+async function readPngSheet(buf){
+  try{
+    const text=pngReadText(new Uint8Array(buf),'UIIDSheet');
+    if(text) return JSON.parse(text);
+  }catch(e){ /* 위드 이력 없음 또는 읽기 실패 */ }
+  return [];
+}
+
+// txt/md용 "페이지 맨 아래" 스탬프 — 원클릭·다클릭·방식B가 모두 공유.
+// 텍스트 파일에는 실제 "페이지" 개념이 없어서(뷰어/에디터마다 한 화면에 보이는 줄 수가 다름)
+// 100% 물리적 하단을 보장할 수는 없지만, 내용 바로 아래(=이미지 캡션처럼 붙어보이던 것)가 아니라
+// 눈에 띄게 아래로 밀어서 docx 푸터·PDF 하단처럼 "페이지 맨 아래"에 있는 느낌을 주도록 여백을 넣음.
+// ★ 핵심 추가: txt/md는 원래 "페이지"라는 개념이 없는 포맷이지만, 사용자가 문서 안에
+//   ---PAGE--- 라는 줄(구분자)을 직접 넣어두면 그 지점을 "페이지 경계"로 인식해서
+//   docx/pdf처럼 페이지마다 UIID를 찍어줌. 구분자가 하나도 없으면(기존 파일 전부 해당)
+//   지금까지와 완전히 동일하게 문서 전체를 한 페이지로 보고 맨 아래에 한 번만 찍음
+//   (기존 동작과 100% 하위호환).
+const PAGE_MARK_RE=/(^[ \t]*-{3,}\s*PAGE\s*-{3,}[ \t]*$)/gim;
+function txtBottomStamp(text,uiid){
+  const parts=text.split(PAGE_MARK_RE);
+  if(parts.length===1){
+    const PAD_LINES=20;
+    return text+'\n\n'+'\n'.repeat(PAD_LINES)+'UIID: '+uiid+'\n';
+  }
+  // 페이지 구분자가 있는 경우: 각 페이지 내용 끝(다음 구분자 직전)마다 UIID를 찍고,
+  // 구분자 줄 자체는 그대로 유지해서 원래의 페이지 구성이 보존되게 함
+  const PAD_LINES_PAGE=6;
+  let out='';
+  for(let i=0;i<parts.length;i+=2){
+    out+=parts[i].replace(/\n+$/,'')+'\n'+'\n'.repeat(PAD_LINES_PAGE)+'UIID: '+uiid+'\n';
+    if(parts[i+1]!==undefined) out+='\n'+parts[i+1]+'\n';
+  }
+  return out;
+}
+
+// ── 파일 1개 + UIID → _UD 파일 생성 (원클릭 표준 포맷) ──
+// opts: {dt, sha(전체 SHA-256 hex), sha12, preservedSheet(배열), creatorLabel, pos}
+async function buildUDFile(file,uiid,opts={}){
+  const ext=file.name.split('.').pop().toLowerCase();
+  const dt=opts.dt||getNow();
+  const sha=opts.sha||await sha256(await file.arrayBuffer());
+  const sha12=opts.sha12||sha.slice(0,12).toUpperCase();
+  const pos=opts.pos||'bottom';
+  let outBlob=null,outName=toUDName(file.name);
+
+  if(['txt','md'].includes(ext)){
+    const text=await file.text();
+    // ★ 내용 바로 아래(이미지 캡션처럼)가 아니라, 다른 확장자처럼 "페이지 맨 아래"로 밀어서 표시
+    outBlob=new Blob([txtBottomStamp(text,uiid)],{type:'text/plain;charset=utf-8'});
+  } else if(['html','htm'].includes(ext)){
+    let text=await file.text();
+    const meta='<meta name="uiid" content="'+uiid+'">\n';
+    const footer='\n<div style="font-family:monospace;font-size:10px;color:#999;text-align:center;padding:8px;border-top:1px solid #eee;margin-top:20px;">'+uiid+'</div>\n';
+    text=text.replace(/<head>/i,'<head>\n'+meta);
+    text=text.replace('</body>',footer+'</body>');
+    outBlob=new Blob([text],{type:'text/html;charset=utf-8'});
+  } else if(['png','jpg','jpeg','webp'].includes(ext)){
+    const img=await createImageBitmap(file);
+    const canvas=document.createElement('canvas');
+    canvas.width=img.width;canvas.height=img.height;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0);
+    const fs2=Math.max(12,Math.floor(img.width/60));
+    ctx.font=fs2+'px sans-serif'; // ★ monospace는 한글을 못 그리는 경우가 있어 sans-serif로 변경
+    ctx.fillStyle='rgba(255,255,255,0.75)';
+    ctx.fillRect(0,img.height-fs2-20,img.width,fs2+20);
+    ctx.fillStyle='#333';
+    ctx.fillText(uiid,10,img.height-8);
+    const mime=ext==='jpg'||ext==='jpeg'?'image/jpeg':'image/'+ext;
+    outBlob=await new Promise(r=>canvas.toBlob(r,mime,0.95));
+    // ★ 핵심 수정: PNG는 표준 iTXt 메타데이터 청크에 위드 이력을 함께 저장해서
+    //   "_UD 파일 업로드(계보 파악)" 기능이 png도 docx/xlsx처럼 이력을 읽을 수 있게 함.
+    //   (jpg/webp는 canvas 재인코딩 과정에서 이 방식의 메타데이터를 넣을 표준적인
+    //   방법이 마땅치 않아 지금은 시각적 스탬프만 지원 — 알려진 제한사항)
+    if(ext==='png'){
+      try{
+        const preservedSheetForPng=opts.preservedSheet||[];
+        const existingSheet=preservedSheetForPng.length?[...preservedSheetForPng]:await readPngSheet(await file.arrayBuffer());
+        const newParent=existingSheet.length?existingSheet[existingSheet.length-1].uiid:null;
+        existingSheet.push({v:existingSheet.length+1,uiid,date:dt,sha12,note:'v'+(existingSheet.length+1)+' 등록',parent:newParent});
+        const pngBuf=new Uint8Array(await outBlob.arrayBuffer());
+        const injected=pngInjectText(pngBuf,'UIIDSheet',JSON.stringify(existingSheet));
+        outBlob=new Blob([injected],{type:'image/png'});
+      }catch(e){ console.warn('PNG 위드 이력 저장 실패(스탬프 자체는 정상):',e); }
+    }
+  } else if(ext==='pdf'){
+    if(!window.PDFLib) throw new Error('PDF 라이브러리 로딩 필요');
+    try{
+      const buf=await file.arrayBuffer();
+      const preservedSheetForPdf=opts.preservedSheet||[];
+      const existingSheet=preservedSheetForPdf.length?[...preservedSheetForPdf]:await readPdfSheet(buf);
+      const newParent=existingSheet.length?existingSheet[existingSheet.length-1].uiid:null;
+      existingSheet.push({v:existingSheet.length+1,uiid,date:dt,sha12,note:'v'+(existingSheet.length+1)+' 등록',parent:newParent});
+      const bytes=await stampPdfBytes(buf,uiid,pos,existingSheet);
+      outBlob=new Blob([bytes],{type:'application/pdf'});
+    }catch(pdfErr){
+      // PDF 처리 실패 시 UIID_cert와 함께 ZIP으로 포장(방식C)해서라도 반드시 _UD 산출물을 만듦
+      const buf3=await file.arrayBuffer();
+      const zip3=new JSZip();
+      zip3.file(file.name,buf3);
+      zip3.file('UIID_cert.json',JSON.stringify({uiid,sha256:sha,original_file:file.name},null,2));
+      outBlob=await zip3.generateAsync({type:'blob',compression:'DEFLATE'});
+      outName=toUDName(file.name.replace(/\.[^.]+$/,''))+'.zip';
+    }
+  } else if(ext==='docx'){
+    const buf=await file.arrayBuffer();
+    const zip2=new JSZip();
+    await zip2.loadAsync(buf);
+    const preservedSheetForDocx=opts.preservedSheet||[];
+    const existingSheet=preservedSheetForDocx.length?[...preservedSheetForDocx]:[];
+    const existingSheetFile=zip2.file('docProps/uiid_sheet.json');
+    if(existingSheetFile&&!preservedSheetForDocx.length){
+      try{const s=JSON.parse(await existingSheetFile.async('string'));existingSheet.push(...s);}catch{}
+    }
+    const newParent=existingSheet.length?existingSheet[existingSheet.length-1].uiid:null;
+    existingSheet.push({v:existingSheet.length+1,uiid,date:dt,sha12,note:'v'+(existingSheet.length+1)+' 등록',parent:newParent});
+    zip2.file('docProps/uiid_sheet.json',JSON.stringify(existingSheet,null,2),{createFolders:false});
+    // ★ 핵심 수정: .json 확장자는 OOXML에 기본 내용타입이 없어서 이 선언이 빠지면
+    //   엑셀/워드가 "내용을 알 수 없는 파트"로 보고 복구 경고를 띄우는 원인이 됨
+    await ensureContentTypeDefault(zip2,'json','application/json');
+    await stampDocxZip(zip2,uiid); // ★ 푸터 + Content_Types 등록까지 완전하게 처리
+    const outBuf2=await zip2.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
+    outBlob=new Blob([outBuf2],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  } else if(['xlsx','pptx'].includes(ext)){
+    const buf=await file.arrayBuffer();
+    const zip2=new JSZip();
+    await zip2.loadAsync(buf);
+    const preservedSheetForOffice=opts.preservedSheet||[];
+    const existingSheet=preservedSheetForOffice.length?[...preservedSheetForOffice]:[];
+    const existingSheetFile=zip2.file('docProps/uiid_sheet.json');
+    if(existingSheetFile&&!preservedSheetForOffice.length){
+      try{const s=JSON.parse(await existingSheetFile.async('string'));existingSheet.push(...s);}catch{}
+    }
+    const newParent=existingSheet.length?existingSheet[existingSheet.length-1].uiid:null;
+    existingSheet.push({v:existingSheet.length+1,uiid,date:dt,sha12,note:'v'+(existingSheet.length+1)+' 등록',parent:newParent});
+    zip2.file('docProps/uiid_sheet.json',JSON.stringify(existingSheet,null,2),{createFolders:false});
+    // ★ 핵심 수정: .json 확장자 기본 내용타입 선언 — 엑셀 "내용에 문제가 있습니다" 경고의 핵심 원인
+    await ensureContentTypeDefault(zip2,'json','application/json');
+    await stampOfficeXmlZip(zip2,uiid); // ★ 커스텀 속성 + Content_Types 등록까지 완전하게 처리
+    const mimeMap2={xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation'};
+    const outBuf2=await zip2.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
+    outBlob=new Blob([outBuf2],{type:mimeMap2[ext]});
+  } else {
+    // 그 외 확장자 — ZIP 포장(방식C)으로 반드시 _UD 파일을 만듦
+    const zip=new JSZip();
+    const buf=await file.arrayBuffer();
+    zip.file(file.name,buf);
+    const cert={uiid,sha256:sha,original_file:file.name,file_size:file.size,
+      registered:new Date().toISOString(),creator:opts.creatorLabel||'',registry:'https://langlympics.org'};
+    zip.file('UIID_cert.json',JSON.stringify(cert,null,2));
+    zip.file('README.txt','UIID 포장 패키지\n\nUIID: '+uiid+'\nSHA-256: '+sha+'\n원본 파일: '+file.name+'\n\n검증: WORKS_UIID_Manager → 다운로드 검증 탭');
+    outBlob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+    outName=toUDName(file.name.replace(/\.[^.]+$/,''))+'.zip';
+  }
+  return {blob:outBlob,name:outName,sha12};
+}
+
+async function doOneClick(){
+  if(!_ocFile){toast('⚠️ 파일을 먼저 선택해주세요');return;}
+  const cr=getCreator(),uid=getUserId();
+  if(!cr||uid==='00000000'){toast('⚠️ 아래 폼에서 Creator와 User ID를 먼저 입력해주세요!');return;}
+
+  const btn=document.getElementById('ocBtn');
+  btn.disabled=true;btn.textContent='⏳ 처리 중...';
+  document.getElementById('ocProgress').className='oc-progress show';
+  document.getElementById('ocFinal').className='oc-final';
+  ['ocS1','ocS2','ocS3','ocS4'].forEach(id=>document.getElementById(id).className='oc-step-item wait');
+
+  try{
+    // ── STEP 1: UIID 생성 ──
+    ocSetStep(1,'active','UIID 생성 중...');
+
+    // ★ 파일 SHA-256 앞 12자리 저장 (생성자+날짜와 결합될 원재료)
+    _fileHashForUiid = _ocSha.slice(0,12).toUpperCase();
+
+    const ai  = getAiCode();
+    const dt  = getNow();
+    const co  = getCountry();
+    const vf  = getVerify();
+
+    // ★ 파일 확장자에서 자동 추출 — 단, 폼의 파일유형을 Custom Input으로 직접
+    //   설정해둔 경우(PPP 등)에는 그 값을 그대로 존중함(그동안은 무조건 확장자로
+    //   덮어써서 커스텀 입력이 무시되는 버그가 있었음). Custom이 아니면 기존처럼 자동 추출.
+    const ftSelOc=document.getElementById('ftype');
+    let ft;
+    if(ftSelOc && ftSelOc.value==='CUSTOM'){
+      ft=getFtype();
+    } else {
+      const extMap = {
+        txt:'TXT',md:'TXT',html:'HTML',htm:'HTML',
+        png:'IMG',jpg:'IMG',jpeg:'IMG',webp:'IMG',gif:'IMG',
+        pdf:'PDF',docx:'DOCX',xlsx:'XLSX',pptx:'PPTX',
+        hwp:'HWP',mp4:'MP4',mp3:'MP3',zip:'ZIP'
+      };
+      const fileExt = _ocFile.name.split('.').pop().toLowerCase();
+      ft = extMap[fileExt] || fileExt.toUpperCase();
+    }
+
+    // ★ 파일명에서 자동 추출 (폼의 getTitle() 사용 안 함)
+    const title = _ocFile.name.replace(/\.[^.]+$/,'').slice(0,40);
+    const pe    = getPersCode();
+    const cc    = 0;
+    const coAuthors = getCoAuthData();
+
+    // ★ 핵심 개선: 생성자+userId+AI코드+날짜+파일SHA12 → makeHash로 하나로 결합!
+    // 어느 하나라도 바뀌면 해시값이 완전히 달라져요 ^^
+    const h  = makeHash(cr+'-'+uid+'-'+ai+'-'+dt+'-'+_fileHashForUiid);
+    const fp = cr+'-'+uid+'-'+ai+'-'+dt+'-'+co+'-'+ft+'-'+vf+'-'+h;
+    let uiid = fp+'-'+title;
+    if(pe) uiid+=' // '+pe;
+
+    await new Promise(r=>setTimeout(r,300));
+    ocSetStep(1,'done','✅ UIID 생성 완료: '+fp.slice(0,32)+'...');
+
+    // ── STEP 2: 레지스트리 등록 ──
+    ocSetStep(2,'active','레지스트리 등록 중...');
+
+    // ★ 보존된 이력 확인 → parent 자동 연결
+    const preserved=getPreservedSheet();
+    const autoParent=preserved.length?preserved[preserved.length-1].uiid:getParentUiid();
+
+    const rec={id:Date.now(),creator:cr,userId:uid,aiCode:ai,dateStr:dt,
+      country:co,ftype:ft,verify:vf,title:title,coCount:cc,
+      personal:pe,hash:h,fp:fp,uiid:uiid,inputDate:dt,modDate:dt,
+      secret:'',globalDup:false,coAuthors:coAuthors,
+      parent:autoParent};
+    recs.unshift(rec);
+    saveRecs();     // localStorage 저장
+    renderList();   // 목록 갱신
+    updateStats();  // 통계 갱신
+    const ok=await sbSave(rec);
+    if(ok){localStorage.setItem('uiid_sync_signal',Date.now().toString());}
+    const preserveInfo=preserved.length?` (이전 이력 ${preserved.length}개 연결됨)`:'';
+    ocSetStep(2,'done','✅ 레지스트리 등록 완료 '+(ok?'(로컬 + 🌐 Global)':'(로컬)')+preserveInfo);
+
+    // ── STEP 3: 파일 스탬프 ──
+    // ★ v11_final 재정비: 실제 스탬프 생성은 공용 엔진 buildUDFile()에 위임.
+    //   (다클릭/Register 폼도 동일 엔진을 사용 → 두 기능의 _UD 결과가 100% 통일됨)
+    ocSetStep(3,'active','파일에 UIID 스탬프 삽입 중...');
+    const preservedSheetForOc=getPreservedSheet();
+    const built=await buildUDFile(_ocFile,uiid,{
+      dt, sha:_ocSha, sha12:_ocSha.slice(0,12).toUpperCase(),
+      preservedSheet:preservedSheetForOc, creatorLabel:cr+'-'+uid
+    });
+    const outBlob=built.blob, outName=built.name;
+    await new Promise(r=>setTimeout(r,200));
+    ocSetStep(3,'done','✅ 스탬프 완료 → '+outName);
+
+    // ── STEP 4: 다운로드 ──
+    ocSetStep(4,'active','다운로드 준비 중...');
+    await new Promise(r=>setTimeout(r,200));
+    dlBlob(outBlob,outName);
+    ocSetStep(4,'done','✅ 다운로드 완료! → '+outName);
+
+    // 최종 완료
+    const finalEl=document.getElementById('ocFinal');
+    finalEl.className='oc-final show ok';
+    const preservedCount=getPreservedSheet().length;
+    const linkedMsg=preservedCount?`<div style="font-size:.72rem;color:#2e7d52;margin-top:4px;">🌳 이전 이력 ${preservedCount}개 계보 연결 완료!</div>`:'';
+    finalEl.innerHTML=
+      '<div style="font-size:.95rem;font-weight:700;margin-bottom:8px;">🎉 완료! 파일을 자유롭게 업로드하세요 ^^</div>'+
+      '<div style="font-size:.75rem;font-family:\'JetBrains Mono\',monospace;word-break:break-all;color:#1a6e3d;margin-bottom:6px;">'+uiid+'</div>'+
+      '<div style="font-size:.73rem;color:#2e7d52;">파일명: <b>'+outName+'</b></div>'+linkedMsg;
+    btn.textContent='⚡ UIID 생성 + 스탬프 + 다운로드';
+    btn.disabled=false;
+    // ★ 보존 이력 초기화 (사용 완료)
+    clearPreservedSheet();
+    toast('🎉 원클릭 완료! '+outName+' 다운로드됨');
+
+  }catch(err){
+    const failStep=['ocS1','ocS2','ocS3','ocS4'].findIndex(id=>document.getElementById(id).classList.contains('active'))+1||4;
+    ocSetStep(failStep,'error','❌ 오류: '+err.message);
+    const finalEl=document.getElementById('ocFinal');
+    finalEl.className='oc-final show err';
+    finalEl.innerHTML='❌ 오류가 발생했습니다: '+err.message;
+    btn.textContent='⚡ UIID 생성 + 스탬프 + 다운로드';
+    btn.disabled=false;
+  }
+}
+
+// ── _UD 파일명 헬퍼 ──
+function toUDName(name){
+  // 이미 _UD면 그대로, 아니면 _UD 붙이기
+  const d=name.lastIndexOf('.');
+  if(d===-1) return name.endsWith('_UD')?name:name+'_UD';
+  const base=name.slice(0,d), ext=name.slice(d);
+  return base.endsWith('_UD')?name:base+'_UD'+ext;
+}
+
+// ══════ 방식B·C·검증 공통 ══════
+let _stampBFile=null, _wrapCFile=null, _wrapCSha='', _verifyZipData=null, _verifyCert=null;
+
+function stampDragOver(t,e){e.preventDefault();document.getElementById({B:'stampBDrop',C:'wrapCDrop',V:'verifyDrop'}[t]).classList.add('drag-over');}
+function stampDragLeave(t){document.getElementById({B:'stampBDrop',C:'wrapCDrop',V:'verifyDrop'}[t]).classList.remove('drag-over');}
+function stampDrop(t,e){e.preventDefault();stampDragLeave(t);const f=e.dataTransfer.files[0];if(!f)return;if(t==='B'){const el=document.getElementById('stampBFile');const dt=new DataTransfer();dt.items.add(f);el.files=dt.files;stampBLoad({files:[f]});}else if(t==='C'){const el=document.getElementById('wrapCFile');const dt=new DataTransfer();dt.items.add(f);el.files=dt.files;wrapCLoad({files:[f]});}else{const el=document.getElementById('verifyFile');const dt=new DataTransfer();dt.items.add(f);el.files=dt.files;verifyDlLoad({files:[f]});}}
+
+// ── 방식B: 파일 로드 ──
+function stampBLoad(inp){
+  const f=inp.files&&inp.files[0]; if(!f)return;
+  _stampBFile=f;
+  document.getElementById('stampBName').textContent=f.name;
+  document.getElementById('stampBSize').textContent='('+_fmtSize(f.size)+')';
+  document.getElementById('stampBLoaded').classList.add('show');
+  document.getElementById('stampBResult').className='stamp-result';
+  stampBFillUiid();
+  toast('📁 파일 로드: '+f.name);
+}
+function stampBFillUiid(){
+  const u=getPlainUIID();
+  document.getElementById('stampBUiid').value=u;
+}
+
+// ── 방식B: 스탬프 실행 ──
+async function doStampB(){
+  if(!_stampBFile){toast('⚠️ 파일을 먼저 선택해주세요');return;}
+  const uiid=document.getElementById('stampBUiid').value.trim();
+  if(!uiid){toast('⚠️ UIID를 입력해주세요');return;}
+  const pos=document.querySelector('input[name="stampPos"]:checked').value;
+  const ext=_stampBFile.name.split('.').pop().toLowerCase();
+  const res=document.getElementById('stampBResult');
+  res.className='stamp-result';
+  try{
+    if(['txt','md'].includes(ext)){
+      await stampTxt(_stampBFile,uiid,pos);
+    } else if(['html','htm'].includes(ext)){
+      await stampHtml(_stampBFile,uiid,pos);
+    } else if(['png','jpg','jpeg','webp'].includes(ext)){
+      await stampImage(_stampBFile,uiid,pos);
+    } else if(ext==='pdf'){
+      await stampPdf(_stampBFile,uiid,pos);
+    } else if(ext==='docx'){
+      await stampDocx(_stampBFile,uiid,pos);
+    } else if(['xlsx','pptx'].includes(ext)){
+      // ZIP 기반 포맷 — 메타데이터에 삽입
+      await stampOfficeXml(_stampBFile,uiid,ext);
+    } else {
+      res.className='stamp-result stamp-warn show';
+      res.innerHTML='⚠️ <b>'+ext.toUpperCase()+'</b> 파일은 방식B 직접 삽입이 어려워요.<br>방식C(ZIP 포장)를 이용하세요!';
+      return;
+    }
+    res.className='stamp-result stamp-ok show';
+    res.innerHTML='✅ UIID 스탬프 완료! 파일이 다운로드되었습니다.<br><span style="font-size:.72rem;font-family:monospace;">'+uiid+'</span>';
+  }catch(e){
+    res.className='stamp-result stamp-err show';
+    res.innerHTML='❌ 오류: '+e.message;
+  }
+}
+
+// ── DOCX 스탬프 ──
+async function stampDocx(file, uiid, pos){
+  // ★ v11_final: footer 삽입 + Content_Types 등록까지 완전하게 처리하는
+  //   공용 엔진(stampDocxZip)에 위임 — 방식B도 원클릭·다클릭과 동일하게 고쳐진 로직을 씀
+  const buf = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(buf);
+  // ★ 핵심 수정: 방식B는 지금까지 docProps/uiid_sheet.json(위드 이력)을 전혀 쓰지 않아서
+  //   "_UD 파일 업로드" 계보 파악이 항상 비어있었음 — 원클릭/다클릭(buildUDFile)과 동일하게 이력을 기록함.
+  try{
+    const dt=getNow();
+    const sha=await sha256(buf);
+    const sha12=sha.slice(0,12).toUpperCase();
+    const existingSheet=[];
+    const existingSheetFile=zip.file('docProps/uiid_sheet.json');
+    if(existingSheetFile){ try{const s=JSON.parse(await existingSheetFile.async('string'));existingSheet.push(...s);}catch{} }
+    const newParent=existingSheet.length?existingSheet[existingSheet.length-1].uiid:null;
+    existingSheet.push({v:existingSheet.length+1,uiid,date:dt,sha12,note:'v'+(existingSheet.length+1)+' 등록',parent:newParent});
+    zip.file('docProps/uiid_sheet.json',JSON.stringify(existingSheet,null,2),{createFolders:false});
+    await ensureContentTypeDefault(zip,'json','application/json');
+  }catch(e){ console.warn('DOCX 위드 이력 저장 실패(스탬프 자체는 정상):',e); }
+  await stampDocxZip(zip, uiid);
+  const outBuf = await zip.generateAsync({type:'arraybuffer', compression:'DEFLATE'});
+  dlBlob(new Blob([outBuf], {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}), toUDName(file.name));
+}
+
+// ── XLSX·PPTX 메타데이터 삽입 ──
+async function stampOfficeXml(file, uiid, ext){
+  // ★ v11_final: 커스텀 속성 삽입 + Content_Types 등록까지 완전하게 처리하는
+  //   공용 엔진(stampOfficeXmlZip)에 위임
+  const buf = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(buf);
+  // ★ 핵심 수정: 방식B는 지금까지 docProps/uiid_sheet.json(위드 이력)을 전혀 쓰지 않아서
+  //   "_UD 파일 업로드" 계보 파악이 항상 비어있었음 — 원클릭/다클릭(buildUDFile)과 동일하게 이력을 기록함.
+  try{
+    const dt=getNow();
+    const sha=await sha256(buf);
+    const sha12=sha.slice(0,12).toUpperCase();
+    const existingSheet=[];
+    const existingSheetFile=zip.file('docProps/uiid_sheet.json');
+    if(existingSheetFile){ try{const s=JSON.parse(await existingSheetFile.async('string'));existingSheet.push(...s);}catch{} }
+    const newParent=existingSheet.length?existingSheet[existingSheet.length-1].uiid:null;
+    existingSheet.push({v:existingSheet.length+1,uiid,date:dt,sha12,note:'v'+(existingSheet.length+1)+' 등록',parent:newParent});
+    zip.file('docProps/uiid_sheet.json',JSON.stringify(existingSheet,null,2),{createFolders:false});
+    await ensureContentTypeDefault(zip,'json','application/json');
+  }catch(e){ console.warn('XLSX/PPTX 위드 이력 저장 실패(스탬프 자체는 정상):',e); }
+  await stampOfficeXmlZip(zip, uiid);
+  const mimeMap = {
+    xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  };
+  const outBuf = await zip.generateAsync({type:'arraybuffer', compression:'DEFLATE'});
+  dlBlob(new Blob([outBuf],{type:mimeMap[ext]||'application/octet-stream'}), toUDName(file.name));
+}
+
+async function stampTxt(file,uiid,pos){
+  const text=await file.text();
+  // ★ docx/pdf/이미지와 동일하게, 위치 선택(top/watermark)과 무관하게
+  //   언제나 "페이지 맨 아래"처럼 보이도록 여백을 두고 표시 — txt는 위치를 고를 이유가 없어 고정함
+  const out=txtBottomStamp(text,uiid);
+  dlBlob(new Blob([out],{type:'text/plain'}),toUDName(file.name));
+}
+async function stampHtml(file,uiid,pos){
+  let text=await file.text();
+  const footerHtml='\n<!-- UIID -->\n<div style="font-family:monospace;font-size:10px;color:#999;text-align:center;padding:8px;border-top:1px solid #eee;margin-top:20px;">'+uiid+'</div>\n';
+  const metaTag='<meta name="uiid" content="'+uiid+'">\n';
+  text=text.replace(/<head>/i,'<head>\n'+metaTag);
+  if(pos==='top') text=text.replace(/<body[^>]*>/i,m=>m+footerHtml);
+  else text=text.replace('</body>',footerHtml+'</body>');
+  dlBlob(new Blob([text],{type:'text/html'}),toUDName(file.name));
+}
+async function stampImage(file,uiid,pos){
+  const img=await createImageBitmap(file);
+  const canvas=document.createElement('canvas');
+  canvas.width=img.width; canvas.height=img.height;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(img,0,0);
+  const fontSize=Math.max(12,Math.floor(img.width/60));
+  ctx.font=fontSize+'px monospace';
+  ctx.fillStyle='rgba(0,0,0,0.55)';
+  const pad=10;
+  const tw=ctx.measureText(uiid).width;
+  const bx=pos==='top'?pad:Math.max(pad,img.width-tw-pad);
+  const by=pos==='top'?fontSize+pad:img.height-pad;
+  if(pos==='watermark'){
+    ctx.save();ctx.globalAlpha=0.18;ctx.translate(img.width/2,img.height/2);ctx.rotate(-Math.PI/6);
+    ctx.font=Math.max(10,Math.floor(img.width/40))+'px monospace';
+    ctx.fillStyle='#333';ctx.textAlign='center';ctx.fillText(uiid,0,0);
+    ctx.restore();
+  } else {
+    ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fillRect(0,pos==='top'?0:img.height-fontSize-pad*2,img.width,fontSize+pad*2);
+    ctx.fillStyle='#333';ctx.fillText(uiid,pad,by);
+  }
+  const ext=file.name.split('.').pop().toLowerCase();
+  const mime=ext==='jpg'||ext==='jpeg'?'image/jpeg':'image/'+ext;
+  let outBlob=await new Promise(r=>canvas.toBlob(r,mime,0.95));
+  // ★ 핵심 수정: 방식B(파일 스탬프)는 지금까지 png에도 위드 이력(iTXt)을 전혀 넣지 않아서
+  //   원클릭/다클릭으로 만든 파일은 계보 파악이 되는데 방식B로 만든 파일만 "이력 없음"으로
+  //   나오는 원인이었음 — buildUDFile과 동일한 방식으로 iTXt에 이력을 함께 저장함.
+  if(ext==='png'){
+    try{
+      const dt=getNow();
+      const sha=await sha256(await file.arrayBuffer());
+      const sha12=sha.slice(0,12).toUpperCase();
+      const existingSheet=await readPngSheet(await file.arrayBuffer());
+      const newParent=existingSheet.length?existingSheet[existingSheet.length-1].uiid:null;
+      existingSheet.push({v:existingSheet.length+1,uiid,date:dt,sha12,note:'v'+(existingSheet.length+1)+' 등록',parent:newParent});
+      const pngBuf=new Uint8Array(await outBlob.arrayBuffer());
+      const injected=pngInjectText(pngBuf,'UIIDSheet',JSON.stringify(existingSheet));
+      outBlob=new Blob([injected],{type:'image/png'});
+    }catch(e){ console.warn('PNG 위드 이력 저장 실패(스탬프 자체는 정상):',e); }
+  }
+  dlBlob(outBlob,toUDName(file.name));
+}
+async function stampPdf(file,uiid,pos){
+  if(!window.PDFLib){toast('⚠️ PDF 라이브러리 로딩 중...');return;}
+  // ★ v11_final: 한글 폰트 임베드를 시도하는 공용 엔진(stampPdfBytes)에 위임
+  //   (한글 깨짐 수정 — 예전엔 Helvetica 고정이라 한글이 항상 깨졌음)
+  const buf=await file.arrayBuffer();
+  // ★ 핵심 수정: 방식B는 sheet를 만들어 넘기지 않아서 stampPdfBytes가 /UIIDSheet를
+  //   전혀 쓰지 않았음(원클릭/다클릭만 정상 동작) — 여기서도 기존 이력을 읽어 이어 붙여서 넘김.
+  const dt=getNow();
+  const sha=await sha256(buf);
+  const sha12=sha.slice(0,12).toUpperCase();
+  const existingSheet=await readPdfSheet(buf);
+  const newParent=existingSheet.length?existingSheet[existingSheet.length-1].uiid:null;
+  existingSheet.push({v:existingSheet.length+1,uiid,date:dt,sha12,note:'v'+(existingSheet.length+1)+' 등록',parent:newParent});
+  const bytes=await stampPdfBytes(buf,uiid,pos,existingSheet);
+  dlBlob(new Blob([bytes],{type:'application/pdf'}),toUDName(file.name));
+}
+
+// ── 방식C: 파일 로드 ──
+async function wrapCLoad(inp){
+  const f=inp.files&&inp.files[0]; if(!f)return;
+  _wrapCFile=f; _wrapCSha='';
+  document.getElementById('wrapCName').textContent=f.name;
+  document.getElementById('wrapCSha').textContent='⏳ SHA-256 계산 중...';
+  document.getElementById('wrapCLoaded').classList.add('show');
+  document.getElementById('wrapCResult').className='stamp-result';
+  try{
+    const buf=await f.arrayBuffer();
+    _wrapCSha=await sha256(buf);
+    document.getElementById('wrapCSha').textContent='SHA-256: '+_wrapCSha.slice(0,16)+'...';
+    wrapCFillUiid();
+    toast('📁 로드 완료: '+f.name);
+  }catch(e){document.getElementById('wrapCSha').textContent='오류: '+e.message;}
+}
+function wrapCFillUiid(){
+  document.getElementById('wrapCUiid').value=getPlainUIID();
+}
+
+// ── 방식C: ZIP 포장 실행 ──
+async function doWrapC(){
+  if(!_wrapCFile){toast('⚠️ 파일을 먼저 선택해주세요');return;}
+  const uiid=document.getElementById('wrapCUiid').value.trim();
+  if(!uiid){toast('⚠️ UIID를 입력해주세요');return;}
+  if(!_wrapCSha){toast('⚠️ SHA-256 계산 중입니다. 잠시 후 다시 시도해주세요');return;}
+  const res=document.getElementById('wrapCResult');
+  res.className='stamp-result stamp-warn show'; res.textContent='📦 ZIP 포장 중...';
+  try{
+    const zip=new JSZip();
+    // 원본 파일 (무수정)
+    const buf=await _wrapCFile.arrayBuffer();
+    zip.file(_wrapCFile.name, buf);
+    // UIID 인증서
+    const cert={
+      uiid:uiid,
+      sha256:_wrapCSha,
+      original_file:_wrapCFile.name,
+      file_size:_wrapCFile.size,
+      registered:new Date().toISOString(),
+      creator:getCreator()+'-'+getUserId(),
+      registry:'https://langlympics.org',
+      note:'이 파일은 UIID 방식C(ZIP 포장)로 패키징되었습니다.'
+    };
+    zip.file('UIID_cert.json', JSON.stringify(cert,null,2));
+    // README
+    const readme=[
+      '═══════════════════════════════════════',
+      ' UIID 포장 패키지 (방식C - ZIP Wrapping)',
+      '═══════════════════════════════════════',
+      '',
+      '■ 원본 파일: '+_wrapCFile.name,
+      '■ UIID: '+uiid,
+      '■ SHA-256: '+_wrapCSha,
+      '■ 포장일시: '+new Date().toLocaleString('ko-KR'),
+      '',
+      '■ 검증 방법',
+      '  1. WORKS_UIID_Manager.html 열기',
+      '  2. Tools → 다운로드 검증 탭 선택',
+      '  3. 이 ZIP 파일 업로드',
+      '  4. 변조 검증 실행',
+      '',
+      '■ 원본 무결성',
+      '  원본 파일은 수정 없이 그대로 포함되어 있습니다.',
+      '  SHA-256 해시값으로 언제든 무결성을 검증할 수 있습니다.',
+      '',
+      'Created by UIID Manager · langlympics.org'
+    ].join('\n');
+    zip.file('README.txt', readme);
+    const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+    const zipName='UIID_'+_wrapCFile.name.replace(/\.[^.]+$/,'')+'_'+getNow()+'.zip';
+    dlBlob(blob,zipName);
+    res.className='stamp-result stamp-ok show';
+    res.innerHTML='✅ ZIP 포장 완료! <b>'+zipName+'</b><br>'+'<span style="font-size:.72rem;">원본 파일 + UIID_cert.json + README.txt 포함</span>';
+    toast('📦 ZIP 포장 완료!');
+  }catch(e){
+    res.className='stamp-result stamp-err show';
+    res.innerHTML='❌ 오류: '+e.message;
+  }
+}
+
+// ── 다운로드 검증 ──
+async function verifyDlLoad(inp){
+  const f=inp.files&&inp.files[0]; if(!f)return;
+  _verifyZipData=null; _verifyCert=null;
+  document.getElementById('verifyName').textContent=f.name;
+  document.getElementById('verifyLoaded').classList.add('show');
+  document.getElementById('verifyCertFields').style.display='none';
+  document.getElementById('verifyMatch').className='verify-match';
+  document.getElementById('verifyFail').className='verify-fail';
+  try{
+    const buf=await f.arrayBuffer();
+    const zip=await JSZip.loadAsync(buf);
+    const certFile=zip.file('UIID_cert.json');
+    if(!certFile){toast('⚠️ UIID_cert.json이 없어요. 방식C로 포장된 ZIP인지 확인해주세요.');return;}
+    _verifyCert=JSON.parse(await certFile.async('string'));
+    _verifyZipData=zip;
+    // 인증서 필드 표시
+    const cards=[
+      ['UIID',_verifyCert.uiid||'—'],
+      ['원본 파일',_verifyCert.original_file||'—'],
+      ['등록 SHA-256',(_verifyCert.sha256||'').slice(0,16)+'...'],
+      ['포장 일시',_verifyCert.registered?new Date(_verifyCert.registered).toLocaleString('ko-KR'):'—'],
+      ['창작자',_verifyCert.creator||'—'],
+    ];
+    document.getElementById('certCards').innerHTML=cards.map(([l,v])=>`
+      <div class="cert-card">
+        <div class="cert-card-label">${l}</div>
+        <div class="cert-card-val">${v}</div>
+      </div>`).join('');
+    document.getElementById('verifyCertFields').style.display='block';
+    toast('✅ 인증서 확인! 검증 버튼을 눌러주세요');
+  }catch(e){toast('⚠️ ZIP 읽기 오류: '+e.message);}
+}
+
+async function doVerifyDl(){
+  if(!_verifyZipData||!_verifyCert){toast('⚠️ ZIP 파일을 먼저 선택해주세요');return;}
+  const origName=_verifyCert.original_file;
+  const origFile=_verifyZipData.file(origName);
+  if(!origFile){
+    document.getElementById('verifyFail').className='verify-fail show';
+    document.getElementById('verifyFailDetail').innerHTML='원본 파일('+origName+')을 ZIP 안에서 찾을 수 없습니다.';
+    return;
+  }
+  const buf=await origFile.async('arraybuffer');
+  const calcSha=await sha256(buf);
+  const certSha=(_verifyCert.sha256||'').toUpperCase();
+  const matchEl=document.getElementById('verifyMatch');
+  const failEl=document.getElementById('verifyFail');
+  if(calcSha===certSha){
+    matchEl.className='verify-match show';
+    document.getElementById('verifyMatchDetail').innerHTML=
+      '파일명: <b>'+origName+'</b><br>'+
+      '등록 SHA-256: <span style="font-family:monospace;font-size:.72rem;">'+certSha.slice(0,32)+'...</span><br>'+
+      '현재 SHA-256: <span style="font-family:monospace;font-size:.72rem;">'+calcSha.slice(0,32)+'...</span><br>'+
+      'UIID: <span style="font-family:monospace;font-size:.72rem;">'+(_verifyCert.uiid||'—')+'</span>';
+    failEl.className='verify-fail';
+    toast('✅ 검증 통과! 원본 파일이 변조되지 않았어요');
+  } else {
+    failEl.className='verify-fail show';
+    document.getElementById('verifyFailDetail').innerHTML=
+      '파일명: <b>'+origName+'</b><br>'+
+      '등록 SHA-256: <span style="font-family:monospace;font-size:.72rem;">'+certSha.slice(0,32)+'...</span><br>'+
+      '현재 SHA-256: <span style="font-family:monospace;font-size:.72rem;">'+calcSha.slice(0,32)+'...</span><br>'+
+      '<b>두 값이 다릅니다. 파일이 변조되었을 가능성이 높습니다!</b>';
+    matchEl.className='verify-match';
+    toast('🚨 변조 탐지! 파일이 원본과 다릅니다');
+  }
+}
+function clearVerify(){
+  _verifyZipData=null;_verifyCert=null;
+  document.getElementById('verifyFile').value='';
+  document.getElementById('verifyLoaded').classList.remove('show');
+  document.getElementById('verifyCertFields').style.display='none';
+  document.getElementById('verifyMatch').className='verify-match';
+  document.getElementById('verifyFail').className='verify-fail';
+}
+function dlBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();}
+
+// ══════ 위드 확인 탭 ══════
+let _checkFile=null, _checkFoundUiid='', _checkFileSha='';
+
+function checkDropFile(e){
+  const f=e.dataTransfer.files[0]; if(!f) return;
+  const dt=new DataTransfer(); dt.items.add(f);
+  document.getElementById('checkFile').files=dt.files;
+  doCheckUiid(f);
+}
+
+function ckStep(n,state,msg){
+  const el=document.getElementById('ck'+n);
+  const tx=document.getElementById('ck'+n+'txt');
+  el.className='oc-step-item '+state;
+  if(msg) tx.textContent=msg;
+}
+
+function resetCheck(){
+  _checkFile=null; _checkFoundUiid=''; _checkFileSha='';
+  document.getElementById('checkFile').value='';
+  document.getElementById('checkProgress').style.display='none';
+  document.getElementById('checkNoUiid').style.display='none';
+  document.getElementById('checkHasUiid').style.display='none';
+  document.getElementById('checkHashResult').style.display='none';
+  document.getElementById('checkRegResult').style.display='none';
+  document.getElementById('checkRegBtn').style.display='none';
+  ['ck1','ck2','ck3','ck4'].forEach(id=>{
+    document.getElementById(id).className='oc-step-item wait';
+  });
+}
+
+// 파일에서 UIID 추출
+async function extractUiidFromFile(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  // UIID 패턴: Creator-UserId-...-Hash (최소 7개 필드)
+  const pat=/[A-Z]{2,6}-[A-Z0-9]{4,20}-[A-Z0-9]{3,12}-\d{14}-[A-Z]{2}-[A-Z]{2,8}-[VU]-[A-Z0-9]{8,16}/g;
+
+  if(['txt','md'].includes(ext)){
+    const text=await file.text();
+    const m=text.match(pat);
+    return m?m[m.length-1]:null; // 맨 마지막 것 (스탬프)
+  }
+  if(['html','htm'].includes(ext)){
+    const text=await file.text();
+    // 메타태그에서
+    const meta=text.match(/name=["']uiid["'][^>]+content=["']([^"']+)["']/i);
+    if(meta) return meta[1];
+    // 본문에서
+    const m=text.match(pat);
+    return m?m[m.length-1]:null;
+  }
+  if(['png','jpg','jpeg','webp'].includes(ext)){
+    // 이미지 → Canvas로 픽셀 읽기는 어려우므로 EXIF/메타데이터 시도
+    // 현실적으로 이미지 하단 텍스트에서 읽기는 OCR 필요 → 안내로 대체
+    return '__IMAGE__';
+  }
+  if(ext==='pdf'){
+    if(window.PDFLib){
+      const buf=await file.arrayBuffer();
+      try{
+        const pdf=await PDFLib.PDFDocument.load(buf,{ignoreEncryption:true});
+        // PDF 텍스트 추출은 pdf-lib 단독으로 어려움 → 메타데이터 확인
+        const info=pdf.getInfoDict();
+        // 페이지 수만큼 텍스트 추출 시도 불가, Subject/Keywords에서 시도
+        const kw=pdf.getKeywords();
+        if(kw){ const m=kw.match(pat); if(m) return m[0]; }
+      }catch{}
+    }
+    return '__PDF__'; // PDF는 직접 읽기 제한
+  }
+  if(ext==='docx'){
+    const buf=await file.arrayBuffer();
+    const zip=await JSZip.loadAsync(buf);
+    // footer1.xml에서
+    const fFile=zip.file('word/footer1.xml');
+    if(fFile){
+      const fXml=await fFile.async('string');
+      const m=fXml.match(pat);
+      if(m) return m[0];
+    }
+    // document.xml에서도 탐색
+    const dFile=zip.file('word/document.xml');
+    if(dFile){
+      const dXml=await dFile.async('string');
+      const m=dXml.match(pat);
+      if(m) return m[m.length-1];
+    }
+    return null;
+  }
+  if(['xlsx','pptx'].includes(ext)){
+    const buf=await file.arrayBuffer();
+    const zip=await JSZip.loadAsync(buf);
+    const cFile=zip.file('docProps/custom.xml');
+    if(cFile){
+      const cXml=await cFile.async('string');
+      const m=cXml.match(/<vt:lpwstr>([^<]+)<\/vt:lpwstr>/);
+      if(m){ const u=m[1].match(pat); if(u) return u[0]; }
+    }
+    return null;
+  }
+  // 기타: 텍스트로 시도
+  try{
+    const text=await file.text();
+    const m=text.match(pat);
+    return m?m[m.length-1]:null;
+  }catch{ return null; }
+}
+
+// 위드에서 해시 검증
+function verifyUiidHash(uiid, sha12){
+  // UIID 파싱: Creator-UserId-AiCode-DateTime-Country-Ftype-Verify-Hash
+  const parts=uiid.replace(/\s*\/\/.*$/,'').trim().split('-');
+  if(parts.length<8) return {ok:false,reason:'위드 형식이 올바르지 않아요'};
+  const cr=parts[0], uid=parts[1], ai=parts[2], dt=parts[3];
+  const hash=parts[7]; // 8번째 필드가 해시
+
+  // 결합해시 재계산: makeHash(cr+uid+ai+dt+sha12)
+  function makeHash(src){
+    let a=0x811c9dc5,b=0x9e3779b9;
+    for(let i=0;i<src.length;i++){a^=src.charCodeAt(i);a=(a*0x01000193)>>>0;b=(b+src.charCodeAt(i)*31)>>>0;}
+    return((a.toString(36)+b.toString(36)).toUpperCase()+'000000000000').slice(0,12);
+  }
+
+  const expected=makeHash(cr+'-'+uid+'-'+ai+'-'+dt+'-'+sha12.toUpperCase());
+  const actual=hash.toUpperCase();
+
+  if(expected===actual){
+    return {ok:true, reason:'해시값 일치! 원본 파일·창작자·날짜 모두 검증됨', expected, actual};
+  } else {
+    // 구버전(메타데이터 해시) 확인
+    const country=parts[4], ftype=parts[5], verify=parts[6];
+    const legacyHash=makeHash(cr+'-'+uid+'-'+ai+'-'+dt+'-'+country+'-'+ftype+'-'+verify);
+    if(legacyHash===actual){
+      return {ok:'legacy', reason:'구버전 위드 — 메타데이터 해시로 등록된 파일이에요. 파일 내용 검증은 불가하지만 신원은 확인됩니다.', expected:legacyHash, actual};
+    }
+    return {ok:false, reason:'해시값 불일치! 파일·창작자·날짜 중 하나가 변조됐을 수 있어요', expected, actual};
+  }
+}
+
+async function doCheckUiid(file){
+  if(!file) return;
+  _checkFile=file; _checkFoundUiid=''; _checkFileSha='';
+  resetCheck();
+  document.getElementById('checkProgress').style.display='block';
+  document.getElementById('checkNoUiid').style.display='none';
+  document.getElementById('checkHasUiid').style.display='none';
+  const ext=file.name.split('.').pop().toLowerCase();
+
+  try{
+    // STEP 1: 파일 읽기
+    ckStep(1,'active','파일 읽는 중: '+file.name);
+    await new Promise(r=>setTimeout(r,200));
+    ckStep(1,'done','✅ 파일 읽기 완료 ('+_fmtSize(file.size)+')');
+
+    // STEP 2: 위드 탐색
+    ckStep(2,'active','위드 탐색 중...');
+    const found=await extractUiidFromFile(file);
+
+    if(!found){
+      ckStep(2,'error','❌ 위드를 찾을 수 없어요');
+      document.getElementById('checkNoUiid').style.display='block';
+      document.getElementById('checkNoMsg').innerHTML=
+        '이 파일에는 위드가 새겨져 있지 않아요.<br>'+
+        '원클릭 버튼으로 위드를 찍으면 파일 어디서나 검증받을 수 있어요 ^^';
+      return;
+    }
+    if(found==='__IMAGE__'){
+      ckStep(2,'done','✅ 이미지 파일 확인');
+      document.getElementById('checkNoUiid').style.display='block';
+      document.getElementById('checkNoMsg').innerHTML=
+        '이미지 파일의 텍스트 위드 확인은 시각적으로만 가능해요.<br>'+
+        '이미지를 열어서 하단에 위드 코드가 있는지 직접 확인해주세요 ^^';
+      return;
+    }
+    if(found==='__PDF__'){
+      ckStep(2,'done','✅ PDF 파일 확인');
+      document.getElementById('checkNoUiid').style.display='block';
+      document.getElementById('checkNoMsg').innerHTML=
+        'PDF 텍스트 직접 추출은 현재 제한이 있어요.<br>'+
+        'PDF를 열어서 페이지 하단에 위드 코드가 있는지 직접 확인해주세요 ^^';
+      return;
+    }
+
+    _checkFoundUiid=found;
+    ckStep(2,'done','✅ 위드 발견! '+found.slice(0,30)+'...');
+    document.getElementById('checkFoundUiid').textContent=found;
+    document.getElementById('checkHasUiid').style.display='block';
+
+    // STEP 3: SHA-256 계산 + 해시 검증
+    ckStep(3,'active','파일 SHA-256 계산 중...');
+    const buf=await file.arrayBuffer();
+    const sha=await sha256(buf);
+    _checkFileSha=sha;
+    const sha12=sha.slice(0,12).toUpperCase();
+
+    const vResult=verifyUiidHash(found, sha12);
+    ckStep(3, vResult.ok?'done':'error',
+      vResult.ok==='legacy'?'✅ 구버전 위드 확인':
+      vResult.ok?'✅ 해시값 일치! 원본 보증':
+      '⚠️ 해시값 불일치 — 변조 가능성');
+
+    const hr=document.getElementById('checkHashResult');
+    hr.style.display='block';
+    if(vResult.ok===true){
+      hr.innerHTML=`<div class="verify-match show">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:6px;">✅ 원본 보증! 해시값 일치</div>
+        <div style="font-size:.78rem;line-height:1.8;">
+          파일 SHA-256 앞12자: <code>${sha12}</code><br>
+          위드 해시값: <code>${vResult.actual}</code><br>
+          <b>파일 내용 · 창작자 · 날짜 모두 변조되지 않았어요!</b>
+        </div>
+      </div>`;
+    } else if(vResult.ok==='legacy'){
+      hr.innerHTML=`<div style="background:#FFF8E1;border:1.5px solid #FCD34D;border-radius:10px;padding:12px;font-size:.78rem;color:#7d5a00;line-height:1.8;">
+        <b>ℹ️ 구버전 위드</b><br>${vResult.reason}
+      </div>`;
+    } else {
+      hr.innerHTML=`<div class="verify-fail show">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:6px;">🚨 해시값 불일치!</div>
+        <div style="font-size:.78rem;line-height:1.8;">
+          파일 SHA-256 앞12자: <code>${sha12}</code><br>
+          위드 해시값: <code>${vResult.actual}</code><br>
+          <b>${vResult.reason}</b>
+        </div>
+      </div>`;
+    }
+
+    // STEP 4: 레지스트리 대조 버튼 표시
+    ckStep(4,'wait','레지스트리 대조 — 버튼 클릭 시 실행');
+    document.getElementById('checkRegBtn').style.display='inline-flex';
+    toast('🔎 위드 확인 완료! 레지스트리 대조도 가능해요 ^^');
+
+  }catch(e){
+    toast('⚠️ 오류: '+e.message);
+  }
+}
+
+async function doCheckRegistry(){
+  if(!_checkFoundUiid) return;
+  ckStep(4,'active','레지스트리 대조 중...');
+  document.getElementById('checkRegBtn').disabled=true;
+  const rr=document.getElementById('checkRegResult');
+  try{
+    // UIID에서 fingerprint 추출 (// 이전 부분)
+    const fp=_checkFoundUiid.replace(/\s*\/\/.*$/,'').trim();
+    const results=await sbCheckDup(fp);
+    rr.style.display='block';
+    if(results&&results.length>0){
+      const r=results[0];
+      ckStep(4,'done','✅ 레지스트리 등록 확인!');
+      rr.innerHTML=`<div class="verify-match show">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:6px;">🌐 레지스트리 등록 확인!</div>
+        <div style="font-size:.78rem;line-height:1.8;">
+          제목: <b>${r.title||'(제목 없음)'}</b><br>
+          등록일: <b>${r.created_at?new Date(r.created_at).toLocaleString('ko-KR'):'—'}</b><br>
+          <b>langlympics.org 레지스트리에 공식 등록된 위드예요!</b>
+        </div>
+      </div>`;
+    } else {
+      ckStep(4,'done','ℹ️ 레지스트리 미등록');
+      rr.innerHTML=`<div style="background:#F0F4FF;border:1.5px solid #A5B4FC;border-radius:10px;padding:12px;font-size:.78rem;color:#3730A3;line-height:1.8;">
+        <b>ℹ️ 레지스트리에서 찾을 수 없어요</b><br>
+        로컬에서만 생성됐거나 다른 레지스트리에 등록됐을 수 있어요.<br>
+        위드 코드 자체의 해시값 검증은 이미 완료됐어요 ^^
+      </div>`;
+    }
+  }catch(e){
+    ckStep(4,'error','레지스트리 연결 오류');
+    rr.style.display='block';
+    rr.innerHTML=`<div class="stamp-result stamp-warn show">⚠️ 레지스트리 연결 오류: ${e.message}</div>`;
+  }
+  document.getElementById('checkRegBtn').disabled=false;
+}
+
+// ══════ Parent UIID ══════
+function getParentUiid(){
+  return (document.getElementById('parentUiid')?.value||'').trim();
+}
+function clearParent(){
+  document.getElementById('parentUiid').value='';
+  document.getElementById('parentStatus').textContent='';
+  document.getElementById('udParseResult').style.display='none';
+  document.getElementById('udFileInput').value='';
+}
+
+// ── _UD 파일 파싱 ──
+async function parseUDFile(file){
+  if(!file)return;
+  const SS='\x00\x00[UIID_SHEET_v1]\x00\x00';
+  const SE='\x00\x00[UIID_SHEET_END]\x00\x00';
+  const ext=file.name.split('.').pop().toLowerCase();
+  const isUDF=file.name.replace(/\.[^.]+$/,'').endsWith('_UD');
+  const resEl=document.getElementById('udParseResult');
+  resEl.style.display='block';
+
+  let sheet=[];
+
+  try{
+    if(['txt','md','html','htm','csv','json'].includes(ext)){
+      // 텍스트 파일 — SS/SE 파싱 우선
+      const text=await file.text();
+      const si=text.indexOf(SS);
+      if(si!==-1){
+        const after=text.slice(si+SS.length);
+        const ei=after.indexOf(SE);
+        try{sheet=JSON.parse(ei===-1?after:after.slice(0,ei));}catch{}
+      }
+      // ★ SS/SE 없으면 "UIID: <값>" 한 줄 스탬프(신규 방식) 또는 옛 "--- UIID ---" 방식(구버전 호환) 파싱
+      if(!sheet.length){
+        const uiidPat=/[A-Z]{2,6}-[A-Z0-9]{4,20}-[A-Z0-9]{3,12}-\d{14}-[A-Z]{2}-[A-Z]{2,8}-[VU]-[A-Z0-9]{8,16}[^\n]*/g;
+        const sections=text.split(/---\s*UIID\s*---/);
+        if(sections.length>1){
+          // --- UIID --- 이후 각 섹션에서 위드 추출
+          const found=[];
+          for(let i=1;i<sections.length;i++){
+            const line=sections[i].trim().split('\n')[0].trim();
+            if(line) found.push(line);
+          }
+          if(found.length){
+            sheet=found.map((u,i)=>({v:i+1,uiid:u,date:'',sha12:'',note:'v'+(i+1)+' (텍스트 스탬프)'}));
+          }
+        }
+        // 그래도 없으면 전체 텍스트에서 UIID 패턴 추출
+        if(!sheet.length){
+          const matches=[...text.matchAll(uiidPat)];
+          if(matches.length){
+            // ★ 핵심 수정: ---PAGE--- 로 여러 페이지에 나눠 찍은 txt는 같은 UIID가
+            //   페이지 수만큼 반복해서 나타남 — 이건 서로 다른 버전이 아니라 "한 버전이
+            //   여러 페이지에 반복 표시된 것"이므로, 연속으로 동일한 UIID가 나오면 하나로 합침
+            const uniqueUiids=[];
+            for(const m of matches){
+              const u=m[0].trim();
+              if(!uniqueUiids.length||uniqueUiids[uniqueUiids.length-1]!==u) uniqueUiids.push(u);
+            }
+            sheet=uniqueUiids.map((u,i)=>({v:i+1,uiid:u,date:'',sha12:'',note:'v'+(i+1)+' (패턴 추출)'}));
+          }
+        }
+      }
+    } else if(ext==='png'){
+      // ★ 핵심 수정: PNG는 ZIP이 아니라서 iTXt 메타데이터 청크에서 위드 이력을 읽어야 함
+      //   (예전엔 이 분기가 없어서 무조건 JSZip으로 열려다 실패 → "이력 없음"으로 표시되던 버그)
+      const buf=await file.arrayBuffer();
+      sheet=await readPngSheet(buf);
+    } else if(ext==='pdf'){
+      // ★ 핵심 수정: PDF도 ZIP이 아니라서 Info 딕셔너리(/UIIDSheet)에서 위드 이력을 읽어야 함
+      const buf=await file.arrayBuffer();
+      if(window.PDFLib){ sheet=await readPdfSheet(buf); }
+    } else {
+      // 바이너리(ZIP계열: docx/xlsx/pptx 등) — docProps/uiid_sheet.json
+      const buf=await file.arrayBuffer();
+      if(window.JSZip){
+        try{
+          const zip=await JSZip.loadAsync(buf);
+          const cf=zip.file('docProps/uiid_sheet.json');
+          if(cf){sheet=JSON.parse(await cf.async('string'));}
+        }catch{}
+      }
+    }
+
+    if(!sheet.length){
+      resEl.innerHTML=`<div style="background:rgba(200,150,10,.1);border:1px solid var(--gold);border-radius:6px;padding:8px 10px;font-size:.72rem;color:#E8B830">
+        ${isUDF?'⚠️ UIID 레코드 시트가 비어있어요':'⚠️ _UD 파일이 아니거나 위드 이력이 없어요'}<br>
+        <span style="color:var(--text2)">파일명: ${file.name}</span>
+      </div>`;
+      return;
+    }
+
+    // 최신 위드를 parent로 자동 설정
+    const latest=sheet[sheet.length-1];
+    document.getElementById('parentUiid').value=latest.uiid;
+    document.getElementById('parentStatus').textContent=
+      '✅ '+file.name+' 의 최신 위드(v'+latest.v+')가 부모 위드로 설정됐어요';
+
+    // 제목 자동 입력 (파일명에서)
+    const rawName=file.name.replace(/_UD(\.[^.]+)$/,'$1').replace(/\.[^.]+$/,'');
+    const titleEl=document.getElementById('docTitle');
+    if(!titleEl.value) titleEl.value=rawName;
+
+    // 파일유형 자동 설정
+    const extUpper=ext.toUpperCase();
+    const ftEl=document.getElementById('ftype');
+    if(ftEl){
+      for(const opt of ftEl.options){
+        if(opt.value===extUpper){ftEl.value=extUpper;break;}
+      }
+    }
+
+    // 전체 이력 표시
+    const items=[...sheet].reverse().map((r,i)=>`
+      <div class="ud-rec-item${i===0?' ud-rec-latest':''}">
+        <div class="ud-rec-v">v${r.v} ${i===0?'← 최신 (부모 위드로 설정됨)':''} · ${r.date?r.date.slice(0,8):''}</div>
+        <div class="ud-rec-uiid">${r.uiid}</div>
+      </div>`).join('');
+
+    // ★ 이력을 localStorage에 임시 저장 (위드 이력 보존용)
+    localStorage.setItem('uiid_preserved_sheet', JSON.stringify(sheet));
+    localStorage.setItem('uiid_preserved_file', file.name);
+
+    resEl.innerHTML=`
+      <div style="background:rgba(29,158,117,.08);border:1px solid var(--teal);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:.7rem;font-weight:700;color:var(--teal);margin-bottom:6px">
+          📋 ${file.name} — 위드 이력 ${sheet.length}개 발견!
+        </div>
+        <div style="font-size:.68rem;color:var(--text2);margin-bottom:8px">
+          최신 위드(v${latest.v})가 <b style="color:var(--accent2)">부모 위드</b>로 자동 설정됐어요 ^^
+        </div>
+        <div style="max-height:160px;overflow-y:auto">${items}</div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(29,158,117,.2)">
+          <button onclick="preserveSheet()" style="width:100%;height:36px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.3px">
+            💾 위드 이력 보존 — 편집 후 다시 업로드하면 이력이 연결돼요
+          </button>
+          <div id="preserveStatus" style="display:none;margin-top:6px;font-size:.7rem;text-align:center;color:var(--teal);font-weight:600"></div>
+        </div>
+      </div>`;
+
+    updatePrev();saveForm();
+    toast('📋 '+file.name+' 파싱 완료! 이력 '+sheet.length+'개','ok');
+
+  }catch(e){
+    resEl.innerHTML=`<div style="background:rgba(216,90,48,.1);border:1px solid var(--red);border-radius:6px;padding:8px 10px;font-size:.72rem;color:var(--red)">
+      ❌ 파싱 오류: ${e.message}
+    </div>`;
+  }
+}
+
+// ══════ 위드 이력 보존 ══════
+function preserveSheet(){
+  const sheet=JSON.parse(localStorage.getItem('uiid_preserved_sheet')||'[]');
+  const fname=localStorage.getItem('uiid_preserved_file')||'';
+  if(!sheet.length){toast('⚠️ 보존할 이력이 없어요');return;}
+  // 이미 저장됨 확인
+  const el=document.getElementById('preserveStatus');
+  if(el){
+    el.style.display='block';
+    el.textContent='✅ 이력 보존 완료! ('+sheet.length+'개) — 편집 후 파일을 다시 업로드하면 이력이 자동 연결돼요 ^^';
+  }
+  toast('💾 위드 이력 보존 완료! 이제 편집하고 다시 업로드해요 ^^','ok');
+}
+
+// 보존된 이력 가져오기
+function getPreservedSheet(){
+  try{return JSON.parse(localStorage.getItem('uiid_preserved_sheet')||'[]');}catch{return[];}
+}
+function clearPreservedSheet(){
+  localStorage.removeItem('uiid_preserved_sheet');
+  localStorage.removeItem('uiid_preserved_file');
+}
+
+// ══════ Toast ══════
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2300); }
+
+// ══════ Init ══════
+renderPresets();
+selectTgt(0);
+_loadColor();
+renderCustomCreatorOptions();
+updatePwStatus();
+loadForm();   // ★ 저장된 폼 복원
+updatePrev();
+updateStats();
+renderList();
+setInterval(function(){
+  // 실시간 현재 시각 표시 (저장 전까지 계속 갱신)
+  const el=document.getElementById('dtDisplay');
+  if(el){ _dt=getNow(); el.textContent=fmtDt(_dt); updatePrev(); }
+},1000);
+checkDb();
+</script>
+</body>
+</html>

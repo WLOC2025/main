@@ -1,0 +1,720 @@
+<title>절취선</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#EEF1EF;
+    --paper-raised:#FBFDFC;
+    --paper-raised-2:#F4F7F5;
+    --ink:#1D2422;
+    --ink-soft:#5C6663;
+    --ink-faint:#8B948F;
+    --line:#D7DEDA;
+    --line-strong:#B9C4BE;
+    --accent:#146B64;
+    --accent-bright:#1F8A82;
+    --accent-soft:#E1F0EE;
+    --accent-ink:#0B3F3B;
+    --shadow: 0 1px 2px rgba(20,40,36,.04), 0 8px 24px -12px rgba(20,40,36,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#141C1A;
+      --paper-raised:#1B2624;
+      --paper-raised-2:#20302C;
+      --ink:#EAF1EE;
+      --ink-soft:#A9B6B1;
+      --ink-faint:#71807A;
+      --line:#2B3A36;
+      --line-strong:#3A4C47;
+      --accent:#4FC7BD;
+      --accent-bright:#6BDCD2;
+      --accent-soft:#1D3834;
+      --accent-ink:#CFF3EE;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -12px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#141C1A;
+    --paper-raised:#1B2624;
+    --paper-raised-2:#20302C;
+    --ink:#EAF1EE;
+    --ink-soft:#A9B6B1;
+    --ink-faint:#71807A;
+    --line:#2B3A36;
+    --line-strong:#3A4C47;
+    --accent:#4FC7BD;
+    --accent-bright:#6BDCD2;
+    --accent-soft:#1D3834;
+    --accent-ink:#CFF3EE;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -12px rgba(0,0,0,.55);
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans KR','Noto Sans KR',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--accent-soft); color:var(--accent-ink); }
+
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:40px 28px 64px;
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+  }
+
+  header.top{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:20px;
+    flex-wrap:wrap;
+    border-bottom:1px solid var(--line);
+    padding-bottom:22px;
+  }
+  .brand{ display:flex; flex-direction:column; gap:6px; }
+  .brand .mark{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.72rem;
+    letter-spacing:.14em;
+    color:var(--accent);
+    text-transform:uppercase;
+  }
+  .mark .cut{
+    display:inline-block;
+    width:26px;
+    border-top:2px dashed var(--accent);
+  }
+  h1{
+    font-family:'Gowun Batang',serif;
+    font-weight:700;
+    font-size:clamp(1.7rem,3vw,2.35rem);
+    margin:0;
+    line-height:1.15;
+    text-wrap:balance;
+    letter-spacing:-.01em;
+  }
+  .sub{
+    margin:0;
+    max-width:56ch;
+    color:var(--ink-soft);
+    font-size:.92rem;
+    line-height:1.65;
+  }
+  .sub code{
+    font-family:'IBM Plex Mono',monospace;
+    background:var(--accent-soft);
+    color:var(--accent-ink);
+    padding:.1em .4em;
+    border-radius:4px;
+    font-size:.85em;
+  }
+
+  .stats{
+    display:flex;
+    gap:10px;
+    flex-shrink:0;
+  }
+  .stat{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 16px;
+    min-width:84px;
+    text-align:center;
+    box-shadow:var(--shadow);
+  }
+  .stat .n{
+    font-family:'Gowun Batang',serif;
+    font-weight:700;
+    font-size:1.5rem;
+    font-variant-numeric:tabular-nums;
+    color:var(--accent);
+    line-height:1.1;
+  }
+  .stat .l{
+    font-size:.66rem;
+    color:var(--ink-faint);
+    letter-spacing:.06em;
+    margin-top:2px;
+  }
+
+  main{
+    display:grid;
+    grid-template-columns:1.05fr 0.95fr;
+    gap:22px;
+    align-items:start;
+  }
+  @media (max-width:880px){
+    main{ grid-template-columns:1fr; }
+  }
+
+  .panel{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:14px 18px;
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .panel-title{
+    font-size:.78rem;
+    font-weight:600;
+    letter-spacing:.03em;
+    color:var(--ink-soft);
+  }
+  .toolbar{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  button{
+    font-family:inherit;
+    font-size:.78rem;
+    font-weight:600;
+    border-radius:8px;
+    border:1px solid var(--line-strong);
+    background:var(--paper-raised-2);
+    color:var(--ink);
+    padding:7px 13px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    transition:background .15s ease, border-color .15s ease, transform .05s ease;
+  }
+  button:hover{ border-color:var(--accent); color:var(--accent-ink); }
+  button:active{ transform:translateY(1px); }
+  button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  button.primary{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#F4FBFA;
+  }
+  button.primary:hover{ background:var(--accent-bright); border-color:var(--accent-bright); color:#04211E; }
+  button.ghost{ background:transparent; }
+
+  .word-setting{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:.76rem;
+    color:var(--ink-soft);
+    padding:0 2px;
+  }
+  .word-setting input{
+    width:60px;
+    padding:6px 8px;
+    border:1px solid var(--line-strong);
+    border-radius:8px;
+    background:var(--paper-raised-2);
+    color:var(--ink);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.78rem;
+    font-variant-numeric:tabular-nums;
+  }
+  .word-setting input:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  textarea#editor{
+    flex:1;
+    min-height:440px;
+    resize:vertical;
+    border:none;
+    outline:none;
+    background:transparent;
+    color:var(--ink);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.86rem;
+    line-height:1.75;
+    padding:20px 22px;
+    tab-size:2;
+  }
+  textarea#editor::placeholder{ color:var(--ink-faint); }
+  textarea#editor.drag-over{
+    background:var(--accent-soft);
+    outline:2px dashed var(--accent);
+    outline-offset:-2px;
+  }
+
+  .editor-foot{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:10px 18px;
+    border-top:1px solid var(--line);
+    font-size:.7rem;
+    color:var(--ink-faint);
+  }
+  .copy-msg{
+    color:var(--accent);
+    font-weight:600;
+    opacity:0;
+    transition:opacity .2s ease;
+  }
+  .copy-msg.show{ opacity:1; }
+
+  .preview-body{
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    max-height:620px;
+    overflow-y:auto;
+  }
+  .page-card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .page-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    padding:10px 16px;
+    background:var(--accent-soft);
+    color:var(--accent-ink);
+  }
+  .page-head .num{
+    font-family:'Gowun Batang',serif;
+    font-weight:700;
+    font-size:.92rem;
+  }
+  .page-head .of{
+    font-size:.68rem;
+    font-family:'IBM Plex Mono',monospace;
+    letter-spacing:.04em;
+    opacity:.75;
+  }
+  .page-content{
+    padding:16px;
+    font-size:.82rem;
+    line-height:1.7;
+    color:var(--ink);
+    white-space:pre-wrap;
+    word-break:break-word;
+    max-height:220px;
+    overflow-y:auto;
+  }
+  .page-content:empty::before{
+    content:"(내용 없음)";
+    color:var(--ink-faint);
+    font-style:italic;
+  }
+  .page-uiid{
+    border-top:1px dashed var(--line-strong);
+    padding:9px 16px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.7rem;
+    color:var(--ink-faint);
+    font-style:italic;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .page-uiid .dot{
+    width:5px; height:5px; border-radius:50%;
+    background:var(--accent);
+    flex-shrink:0;
+  }
+
+  .empty-state{
+    margin:auto;
+    padding:40px 20px;
+    text-align:center;
+    color:var(--ink-faint);
+    font-size:.82rem;
+    max-width:32ch;
+  }
+
+  footer.note{
+    border-top:1px solid var(--line);
+    padding-top:18px;
+    font-size:.76rem;
+    color:var(--ink-faint);
+    line-height:1.7;
+  }
+  footer.note b{ color:var(--ink-soft); }
+
+  @media (prefers-reduced-motion:reduce){
+    *{ transition:none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="mark"><span class="cut"></span>절취선</span>
+      <h1>텍스트에 페이지 구분선 넣기</h1>
+      <p class="sub">
+        글 중간에 <code>---PAGE---</code> 한 줄을 넣으면 그 자리가 페이지 경계가 돼요.
+        docx·pdf처럼, txt·md 문서도 페이지 단위로 다룰 수 있게 준비하는 도구예요.
+        UIID Manager의 txt/md 스탬프도 이 표시를 그대로 인식해서 페이지마다 도장을 찍어요.
+      </p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="pageCount">1</div><div class="l">페이지</div></div>
+      <div class="stat"><div class="n" id="charCount">0</div><div class="l">글자수</div></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">✏️ 원고</span>
+        <div class="toolbar">
+          <button class="ghost" id="btnLoad" title="컴퓨터에 있는 .txt/.md 파일을 불러와요">📂 불러오기</button>
+          <input type="file" id="fileInput" accept=".txt,.md,.markdown,text/plain,text/markdown" style="display:none">
+          <button class="primary" id="btnInsert" title="커서 위치에 페이지 구분선을 넣어요">✂️ 여기서 페이지 나누기</button>
+          <span class="word-setting">
+            <input type="number" id="wordsPerPage" value="200" min="10" max="5000" step="10" aria-label="페이지당 단어 수">
+            <span>단어마다</span>
+          </span>
+          <button class="ghost" id="btnAutoSplit" title="입력한 단어 수 기준으로 문서 전체를 자동으로 나눠요">🔀 자동으로 나누기</button>
+          <button class="ghost" id="btnExample" title="사용법이 담긴 3페이지 예시를 불러와요">📄 예시 보기</button>
+          <button class="ghost" id="btnClear" title="원고를 모두 지워요">🗑 지우기</button>
+        </div>
+      </div>
+      <textarea id="editor" spellcheck="false" placeholder="여기에 글을 쓰거나 붙여넣으세요. 파일을 이 위에 드래그해서 놓아도 돼요.&#10;페이지를 나누고 싶은 자리에 커서를 두고 위의 &quot;여기서 페이지 나누기&quot; 버튼을 누르면&#10;---PAGE--- 줄이 그 자리에 들어가요. 직접 타이핑해도 똑같이 인식돼요."></textarea>
+      <div class="editor-foot">
+        <span id="fileStatus">자동 저장됨 · 이 브라우저에만 보관돼요</span>
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span class="copy-msg" id="copyMsg"></span>
+          <button class="ghost" id="btnDownload" style="display:none">⬇️ 파일로 저장</button>
+          <button class="ghost" id="btnCopy">📋 전체 복사</button>
+        </span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-title">📖 페이지 미리보기</span>
+      </div>
+      <div class="preview-body" id="preview"></div>
+    </section>
+  </main>
+
+  <footer class="note">
+    <b>구분선 형식</b> — <code style="font-family:'IBM Plex Mono',monospace;background:var(--accent-soft);color:var(--accent-ink);padding:.1em .4em;border-radius:4px;">---PAGE---</code> 처럼 대시 3개 이상 + PAGE + 대시 3개 이상이 한 줄에 단독으로 있으면 인식해요.
+    대소문자, 대시 개수는 자유예요(예: <code style="font-family:'IBM Plex Mono',monospace;">----page----</code>도 인식). 구분선이 하나도 없으면 문서 전체가 그냥 한 페이지로 취급돼요.<br>
+    이 구분선을 넣은 텍스트를 <b>WORKS_UIID_Manager</b>의 방식B(파일 스탬프)·원클릭·다클릭 어디에 올려도, 페이지마다 UIID가 반복해서 찍혀요.<br>
+    <b>자동으로 나누기</b>는 실제 인쇄 페이지를 그대로 맞추는 게 아니라, 입력한 단어 수(기본 200단어)마다 기계적으로 나누는 간단한 기준이에요 — 손으로 일일이 자르지 않아도 대략적인 페이지 단위를 빠르게 잡을 때 써주세요.
+  </footer>
+</div>
+
+<script>
+(function(){
+  var editor = document.getElementById('editor');
+  var preview = document.getElementById('preview');
+  var pageCountEl = document.getElementById('pageCount');
+  var charCountEl = document.getElementById('charCount');
+  var copyMsg = document.getElementById('copyMsg');
+  var fileStatus = document.getElementById('fileStatus');
+
+  var PAGE_MARK_RE = /^[ \t]*-{3,}\s*PAGE\s*-{3,}[ \t]*$/gim;
+
+  // 불러온 파일의 원래 이름(확장자 포함) — 화면 표시와 저장 파일명 기준으로 씀
+  var loadedFileName = null;
+  function setFileStatus(name){
+    fileStatus.textContent = name
+      ? '📂 ' + name + ' 불러옴 · 자동 저장됨'
+      : '자동 저장됨 · 이 브라우저에만 보관돼요';
+  }
+
+  var EXAMPLE = [
+    '이 문서는 "절취선" 사용법을 보여주는 3페이지짜리 예시예요.',
+    '아래처럼 페이지를 나누고 싶은 자리에 ---PAGE--- 한 줄만 단독으로 넣으면,',
+    '오른쪽 미리보기에서 문서가 페이지 단위로 나뉘어 보여요.',
+    '',
+    '지금 이 문단이 1페이지의 내용이에요.'
+  ].join('\n')
+  + '\n\n---PAGE---\n\n'
+  + [
+    '여기는 2페이지예요.',
+    '',
+    '구분선은 대시(-) 3개 이상, PAGE, 다시 대시 3개 이상으로 이루어진 한 줄이면',
+    '대소문자나 대시 개수가 달라도 똑같이 인식돼요. 예: ----page----'
+  ].join('\n')
+  + '\n\n---PAGE---\n\n'
+  + [
+    '마지막 3페이지예요.',
+    '',
+    'WORKS_UIID_Manager로 이 텍스트를 불러와서 txt/md로 UIID를 찍으면,',
+    '지금 아래 미리보기에 회색 점선으로 표시된 자리마다 실제 UIID 한 줄이 찍혀요.'
+  ].join('\n');
+
+  function loadDraft(){
+    try{
+      var saved = localStorage.getItem('jeoljwiseon_draft');
+      if(saved !== null && saved !== '') return saved;
+    }catch(e){}
+    return EXAMPLE;
+  }
+  function saveDraft(text){
+    try{ localStorage.setItem('jeoljwiseon_draft', text); }catch(e){}
+  }
+  function saveFileName(name){
+    try{
+      if(name) localStorage.setItem('jeoljwiseon_filename', name);
+      else localStorage.removeItem('jeoljwiseon_filename');
+    }catch(e){}
+  }
+  function loadSavedFileName(){
+    try{ return localStorage.getItem('jeoljwiseon_filename') || null; }catch(e){ return null; }
+  }
+
+  // ── 단어 수 기준 자동 페이지 나누기 ──
+  // "실제 인쇄 페이지"를 그대로 맞추는 건 폰트·용지·여백까지 계산하는 조판 엔진이
+  // 있어야 해서 텍스트만으로는 불가능에 가깝지만, "N단어마다 한 페이지"라는 기계적인
+  // 기준이라면 문서 안 단어 경계만 세면 되므로 훨씬 간단하게 구현할 수 있음.
+  function autoInsertPageBreaks(text, wordsPerPage){
+    if(!wordsPerPage || wordsPerPage < 1) wordsPerPage = 200;
+    var wordRe = /\S+/g;
+    var m, count = 0, cuts = [];
+    while((m = wordRe.exec(text))){
+      count++;
+      if(count % wordsPerPage === 0) cuts.push(m.index + m[0].length);
+    }
+    if(!cuts.length) return text; // 전체 단어 수가 기준보다 적으면 그대로 한 페이지
+    var out = '', prev = 0;
+    cuts.forEach(function(cut){
+      out += text.slice(prev, cut).replace(/[ \t]+$/,'') + '\n\n---PAGE---\n\n';
+      prev = cut;
+    });
+    out += text.slice(prev).replace(/^\s+/,'');
+    return out;
+  }
+
+  function splitPages(text){
+    var norm = text.replace(/\r\n/g,'\n');
+    var pages = norm.split(PAGE_MARK_RE);
+    return pages.map(function(p){ return p.replace(/^\n+/,'').replace(/\n+$/,''); });
+  }
+
+  function render(){
+    var text = editor.value;
+    saveDraft(text);
+    charCountEl.textContent = text.length.toLocaleString('ko-KR');
+
+    var pages = splitPages(text);
+    pageCountEl.textContent = pages.length;
+
+    preview.innerHTML = '';
+    if(text.trim() === ''){
+      var empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = '왼쪽에 글을 쓰면 여기에 페이지별로 미리 보여드려요.';
+      preview.appendChild(empty);
+      return;
+    }
+
+    pages.forEach(function(pageText, i){
+      var card = document.createElement('div');
+      card.className = 'page-card';
+
+      var head = document.createElement('div');
+      head.className = 'page-head';
+      head.innerHTML = '<span class="num">' + (i+1) + '페이지</span><span class="of">' + (i+1) + ' / ' + pages.length + '</span>';
+      card.appendChild(head);
+
+      var content = document.createElement('div');
+      content.className = 'page-content';
+      content.textContent = pageText;
+      card.appendChild(content);
+
+      var uiid = document.createElement('div');
+      uiid.className = 'page-uiid';
+      uiid.innerHTML = '<span class="dot"></span>UIID: (실제 스탬프 시 이 자리에 표시돼요)';
+      card.appendChild(uiid);
+
+      preview.appendChild(card);
+    });
+  }
+
+  document.getElementById('btnInsert').addEventListener('click', function(){
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var before = editor.value.slice(0, start);
+    var after = editor.value.slice(end);
+    var needsLeadingBreak = before.length > 0 && !before.endsWith('\n');
+    var insert = (needsLeadingBreak ? '\n' : '') + '\n---PAGE---\n\n';
+    editor.value = before + insert + after;
+    var caret = (before + insert).length;
+    editor.focus();
+    editor.setSelectionRange(caret, caret);
+    render();
+  });
+
+  document.getElementById('btnAutoSplit').addEventListener('click', function(){
+    var wppInput = document.getElementById('wordsPerPage');
+    var wpp = parseInt(wppInput.value, 10);
+    if(!wpp || wpp < 1){ wpp = 200; wppInput.value = 200; }
+    var text = editor.value;
+    if(text.trim() === ''){ flash('원고를 먼저 입력해주세요'); return; }
+    if(!window.confirm(wpp + '단어마다 페이지 구분선을 자동으로 넣을까요?\n(이 작업은 Ctrl+Z로 되돌릴 수 없어요)')) return;
+    editor.value = autoInsertPageBreaks(text, wpp);
+    render();
+  });
+
+  document.getElementById('btnExample').addEventListener('click', function(){
+    editor.value = EXAMPLE;
+    render();
+  });
+
+  document.getElementById('btnClear').addEventListener('click', function(){
+    if(editor.value.trim() !== '' && !window.confirm('원고를 모두 지울까요?')) return;
+    editor.value = '';
+    loadedFileName = null;
+    saveFileName(null);
+    setFileStatus(null);
+    render();
+    editor.focus();
+  });
+
+  // ── 파일 불러오기(버튼 · 드래그 앤 드롭) ──
+  var fileInput = document.getElementById('fileInput');
+  var btnLoad = document.getElementById('btnLoad');
+
+  function loadFileIntoEditor(file){
+    if(!file) return;
+    var name = file.name || '';
+    var ext = name.split('.').pop().toLowerCase();
+    var looksLikeText = ['txt','md','markdown','text'].indexOf(ext) !== -1
+      || (file.type && file.type.indexOf('text') !== -1) || !file.type;
+    if(!looksLikeText){ flash('텍스트(.txt/.md) 파일만 불러올 수 있어요'); return; }
+    if(editor.value.trim() !== '' && !window.confirm('지금 원고를 지우고 "' + name + '" 내용을 불러올까요?')) return;
+
+    function proceed(text){
+      editor.value = text;
+      loadedFileName = name;
+      saveFileName(loadedFileName);
+      setFileStatus(name);
+      render();
+    }
+    if(file.text){
+      file.text().then(proceed).catch(function(){ flash('파일을 읽는 중 오류가 났어요'); });
+    } else {
+      var reader = new FileReader();
+      reader.onload = function(){ proceed(reader.result); };
+      reader.onerror = function(){ flash('파일을 읽는 중 오류가 났어요'); };
+      reader.readAsText(file);
+    }
+  }
+
+  btnLoad.addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', function(){
+    var f = fileInput.files && fileInput.files[0];
+    loadFileIntoEditor(f);
+    fileInput.value = '';
+  });
+
+  editor.addEventListener('dragover', function(e){ e.preventDefault(); editor.classList.add('drag-over'); });
+  editor.addEventListener('dragleave', function(){ editor.classList.remove('drag-over'); });
+  editor.addEventListener('drop', function(e){
+    e.preventDefault();
+    editor.classList.remove('drag-over');
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f) loadFileIntoEditor(f);
+  });
+
+  function flash(msg){
+    copyMsg.textContent = msg;
+    copyMsg.classList.add('show');
+    clearTimeout(flash._t);
+    flash._t = setTimeout(function(){ copyMsg.classList.remove('show'); }, 1800);
+  }
+
+  document.getElementById('btnCopy').addEventListener('click', function(){
+    var text = editor.value;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ flash('복사됐어요 ✓'); }).catch(function(){
+        editor.select();
+        try{ document.execCommand('copy'); flash('복사됐어요 ✓'); }catch(e){}
+      });
+    } else {
+      editor.select();
+      try{ document.execCommand('copy'); flash('복사됐어요 ✓'); }catch(e){}
+    }
+  });
+
+  // ── 저장하기 ──
+  // claude.ai 안(아티팩트 뷰어)에서는 downloads capability로 저장하고,
+  // 로컬에 받은 파일을 그냥 브라우저로 연 경우(window.claude 자체가 없음)에는
+  // 표준 브라우저 다운로드(Blob + <a download>)가 항상 되므로 그걸로 저장함.
+  var downloadsCap = null;
+  var btnDownload = document.getElementById('btnDownload');
+  var isEmbeddedViewer = (typeof window.claude !== 'undefined' && window.claude && window.claude.use);
+  if(isEmbeddedViewer){
+    window.claude.use('downloads').then(function(cap){
+      downloadsCap = cap;
+      if(cap) btnDownload.style.display = '';
+    }).catch(function(){});
+  } else {
+    btnDownload.style.display = '';
+  }
+
+  function buildSaveFilename(){
+    var base = (loadedFileName ? loadedFileName.replace(/\.[^.]+$/, '') : '') || '절취선';
+    var d = new Date();
+    var stamp = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0')
+      + '_' + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0');
+    return base + '_페이지_' + stamp + '.txt';
+  }
+
+  btnDownload.addEventListener('click', function(){
+    var filename = buildSaveFilename();
+    if(downloadsCap){
+      downloadsCap.save({ filename: filename, data: editor.value })
+        .then(function(){ flash('저장됐어요 ✓'); })
+        .catch(function(err){
+          var code = err && err.code;
+          if(code === 'declined') return; // 사용자가 취소한 것뿐 — 별도 안내 불필요
+          if(code === 'rate_limited') flash('잠시 후 다시 시도해주세요');
+          else flash('저장을 지원하지 않는 환경이에요');
+        });
+      return;
+    }
+    if(!isEmbeddedViewer){
+      try{
+        var blob = new Blob([editor.value], {type:'text/plain;charset=utf-8'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+        flash('저장됐어요 ✓');
+      }catch(e){ flash('저장에 실패했어요'); }
+      return;
+    }
+    flash('이 화면에서는 저장을 지원하지 않아요');
+  });
+
+  editor.addEventListener('input', render);
+  editor.value = loadDraft();
+  loadedFileName = loadSavedFileName();
+  setFileStatus(loadedFileName);
+  render();
+})();
+</script>

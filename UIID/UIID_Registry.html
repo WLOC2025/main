@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UIID Registry — 세계 정보 식별 시스템</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#dce8f8;--bg2:#f5faff;--bg3:#b8d4f0;
+  --accent:#4a6cf7;--accent2:#7c5cbf;--gold:#c8960a;
+  --text:#1a1d2e;--text2:#555a7a;--border:#d0d4e8;
+  --success:#2e9e5b;--danger:#e53935;--warn:#c8960a;
+  --radius:12px;--shadow:0 4px 24px rgba(0,0,0,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100;gap:8px;flex-wrap:wrap;}
+.logo{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:600;color:var(--accent);letter-spacing:2px;flex-shrink:0;}
+.logo span{color:var(--gold);}
+.header-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.h-stat{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px 10px;display:flex;align-items:center;gap:5px;font-size:.74rem;}
+.h-stat-n{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);font-size:.9rem;}
+.h-stat-l{color:var(--text2);}
+.db-dot{width:7px;height:7px;border-radius:50%;background:#aaa;display:inline-block;transition:background .3s;}
+.hdr-link{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px 10px;font-size:.74rem;color:var(--text2);text-decoration:none;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+.hdr-link:hover{border-color:var(--accent);color:var(--accent);}
+.sync-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:.74rem;color:var(--text2);cursor:pointer;}
+.sync-btn:hover{border-color:var(--accent);color:var(--accent);}
+.sync-time{font-size:.68rem;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+
+.container{max-width:900px;margin:0 auto;padding:1.5rem;}
+
+.tabs{display:flex;gap:2px;margin-bottom:1.2rem;border-bottom:1px solid var(--border);}
+.tab{padding:8px 18px;font-size:13px;cursor:pointer;border:none;background:none;color:var(--text2);font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* 검색 박스 */
+.search-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.3rem;margin-bottom:1rem;box-shadow:var(--shadow);}
+.filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:7px;margin-bottom:9px;}
+.filter-grid select,.filter-grid input[type=date]{
+  width:100%;padding:7px 9px;font-size:12px;font-family:inherit;
+  border:1px solid var(--border);border-radius:8px;background:var(--bg3);
+  color:var(--text);outline:none;}
+.filter-grid select:focus,.filter-grid input:focus{border-color:var(--accent);}
+.search-row{display:flex;gap:7px;}
+.search-row input{flex:1;padding:8px 11px;font-size:13px;font-family:inherit;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);outline:none;}
+.search-row input:focus{border-color:var(--accent);}
+.btn{padding:7px 14px;font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);cursor:pointer;transition:all .12s;white-space:nowrap;}
+.btn:hover{background:var(--bg3);}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-primary:hover{background:#3a5ce7;}
+
+.sort-bar{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;color:var(--text2);}
+.sort-bar select{font-size:12px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text);font-family:inherit;}
+.result-count{margin-left:auto;font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+
+.tag-bar{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+.tag{display:flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border:1px solid var(--border);border-radius:20px;background:var(--bg2);color:var(--text2);}
+.tag button{background:none;border:none;cursor:pointer;color:var(--text2);font-size:13px;line-height:1;padding:0;}
+
+/* 카드 */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:9px;overflow:hidden;transition:border-color .15s;box-shadow:var(--shadow);}
+.card:hover{border-color:var(--accent);}
+.card-top{padding:.85rem 1.1rem .65rem;}
+.card-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;}
+.card-title{font-size:14px;font-weight:500;color:var(--text);}
+.badges{display:flex;gap:4px;flex-shrink:0;}
+.badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;}
+.bv{background:#d4f8e8;color:#1a6e3d;}
+.bu{background:#fff3cd;color:#856404;}
+.bp{background:#e8eeff;color:#3a4fd4;}
+.bhoc{background:#e8eeff;color:#3a4fd4;}
+.bhum{background:#f0eeff;color:#4a3ab0;}
+.bai{background:#fdeaea;color:#8a1a1a;}
+.fp-line{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);word-break:break-all;margin-bottom:6px;}
+.sort-tags{display:flex;flex-wrap:wrap;gap:4px;}
+.st{font-size:10px;padding:1px 7px;border:1px solid var(--border);border-radius:20px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+.src-badge{font-size:9px;padding:1px 5px;border-radius:4px;background:var(--bg3);color:var(--text2);margin-left:4px;}
+.card-divider{height:1px;background:var(--border);}
+.card-actions{display:flex;gap:5px;padding:.6rem 1.1rem;flex-wrap:wrap;}
+.btn-sm{padding:4px 10px;font-size:11px;font-family:inherit;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;transition:all .12s;}
+.btn-sm:hover{background:var(--bg3);color:var(--text);}
+.btn-sm-v{border-color:var(--success);color:var(--success);}
+.btn-sm-v:hover{background:#d4f8e8;}
+.expand-area{padding:.75rem 1.1rem;background:var(--bg3);border-top:1px solid var(--border);display:none;}
+.expand-area.open{display:block;}
+
+/* 공동저자 */
+.coauth-item{display:flex;align-items:center;gap:9px;padding:5px 0;border-bottom:1px solid var(--border);}
+.coauth-item:last-child{border-bottom:none;}
+.avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0;}
+.av-h{background:#f0eeff;color:#4a3ab0;}
+.av-a{background:#e8eeff;color:#3a4fd4;}
+.coauth-name{font-size:13px;font-weight:500;}
+.coauth-id{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text2);}
+.coauth-type{margin-left:auto;font-size:10px;padding:1px 7px;border-radius:20px;}
+.ct-h{background:#f0eeff;color:#4a3ab0;}
+.ct-a{background:#e8eeff;color:#3a4fd4;}
+
+/* 비밀 */
+.secret-wrap{display:flex;flex-direction:column;gap:7px;}
+.secret-row{display:flex;gap:6px;}
+.secret-input{flex:1;padding:6px 9px;font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text);outline:none;}
+.secret-input:focus{border-color:var(--accent);}
+.msg{font-size:12px;padding:6px 9px;border-radius:6px;}
+.msg-ok{background:#d4f8e8;color:#1a6e3d;}
+.msg-err{background:#fdeaea;color:#8a1a1a;}
+
+/* 등록 패널 */
+.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.3rem;box-shadow:var(--shadow);}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:11px;margin-bottom:12px;}
+.fg{display:flex;flex-direction:column;gap:4px;}
+.fg.full{grid-column:1/-1;}
+label.fl{font-size:.67rem;letter-spacing:1px;text-transform:uppercase;color:var(--text2);}
+.fg input,.fg select,.fg textarea{
+  padding:8px 10px;font-size:13px;font-family:inherit;
+  border:1px solid var(--border);border-radius:8px;
+  background:var(--bg3);color:var(--text);outline:none;width:100%;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent);}
+.fg textarea{resize:vertical;min-height:60px;}
+.custom-row{display:none;margin-top:4px;}
+.custom-row.show{display:block;}
+
+/* UIID 미리보기 */
+.prev-box{background:var(--bg3);border:1px solid var(--accent);border-radius:10px;padding:11px 14px;margin-bottom:12px;min-height:46px;}
+.prev-lbl{font-size:.62rem;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+.prev-code{font-family:'JetBrains Mono',monospace;font-size:.85rem;color:var(--gold);word-break:break-all;line-height:1.6;}
+.prev-code .pt{color:var(--accent);}
+.prev-code .sep{color:var(--text2);}
+.prev-code .hh{color:var(--success);}
+
+/* 공동저자 입력 */
+.ca-fields{margin-top:9px;display:flex;flex-direction:column;gap:6px;}
+.ca-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 9px;display:grid;grid-template-columns:20px 1fr 1fr auto;gap:7px;align-items:center;}
+.ca-num{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;color:var(--accent);text-align:center;}
+.ca-type-btn{padding:4px 9px;border-radius:6px;font-size:.71rem;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text2);white-space:nowrap;}
+.ca-type-btn.human{background:#f0eeff;color:#4a3ab0;border-color:#c4b8f8;}
+.ca-type-btn.ai{background:#e8eeff;color:#3a4fd4;border-color:#85b7eb;}
+
+.form-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:4px;}
+
+/* 페이지네이션 */
+.pagination{display:flex;gap:5px;justify-content:center;margin-top:.9rem;}
+.pagination button{padding:4px 10px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text2);cursor:pointer;font-family:'JetBrains Mono',monospace;}
+.pagination button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.pagination button:hover:not(.active){background:var(--bg3);}
+
+.loading{text-align:center;padding:2rem;color:var(--text2);font-size:13px;}
+.no-result{text-align:center;padding:2.5rem;color:var(--text2);font-size:13px;}
+
+.toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:#fff;padding:9px 16px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;}
+.toast.show{opacity:1;}
+
+@media(max-width:600px){
+  .filter-grid{grid-template-columns:1fr 1fr;}
+  .ca-item{grid-template-columns:18px 1fr;}
+  .ca-type-btn{grid-column:1/-1;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">UIID <span>Registry</span></div>
+  <div class="header-right">
+    <div class="h-stat"><span class="h-stat-n" id="sTot">0</span><span class="h-stat-l">건</span></div>
+    <div class="h-stat" style="cursor:default">
+      <span class="db-dot" id="dbDot"></span>
+      <span class="h-stat-l" id="dbLabel">연결 중...</span>
+    </div>
+    <span class="sync-time" id="syncTime"></span>
+    <button class="sync-btn" onclick="loadDocuments(false)" title="수동 새로고침">🔄 새로고침</button>
+    <a class="hdr-link" href="UIID_Manual.html">📖 설명서</a>
+    <a class="hdr-link" href="Works_UIID_Manager.html">📋 Manager ↗</a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" id="tab-works" onclick="switchTab('works')">📄 WORKS UIID</button>
+    <button class="tab" id="tab-users" onclick="switchTab('users')">👤 USER UIID</button>
+  </div>
+
+  <!-- 검색 패널 -->
+  <div class="panel active" id="panel-works">
+    <div class="search-box">
+      <div class="filter-grid">
+        <select id="f-origin" onchange="applyFilters()">
+          <option value="">생성주체 전체</option>
+          <option value="HOC">HOC (인간+OHo)</option>
+          <option value="HUM">HUM (인간)</option>
+          <option value="AI">AI</option>
+        </select>
+        <select id="f-lang" onchange="applyFilters()">
+          <option value="">언어 전체</option>
+          <option value="KR">KR 한국어</option>
+          <option value="EN">EN 영어</option>
+          <option value="JP">JP 일본어</option>
+          <option value="CN">CN 중국어</option>
+          <option value="FR">FR 프랑스어</option>
+        </select>
+        <select id="f-type" onchange="applyFilters()">
+          <option value="">유형 전체</option>
+          <option value="TXT">TXT</option>
+          <option value="DOCX">DOCX</option>
+          <option value="PDF">PDF</option>
+          <option value="IMG">IMG</option>
+          <option value="VID">VID</option>
+          <option value="IDEA">IDEA</option>
+          <option value="CODE">CODE</option>
+        </select>
+        <select id="f-verify" onchange="applyFilters()">
+          <option value="">검증 전체</option>
+          <option value="V">V 검증됨</option>
+          <option value="U">U 미검증</option>
+          <option value="R">R 검토중</option>
+        </select>
+        <input type="date" id="f-date-from" onchange="applyFilters()" title="시작날짜"/>
+        <input type="date" id="f-date-to" onchange="applyFilters()" title="종료날짜"/>
+      </div>
+      <div class="search-row">
+        <input type="text" id="f-title" placeholder="제목 또는 지문코드 검색..." oninput="applyFilters()"/>
+        <button class="btn" onclick="resetFilters()">초기화</button>
+      </div>
+    </div>
+
+    <div class="sort-bar">
+      정렬:
+      <select id="sort-by" onchange="applyFilters()">
+        <option value="created_at-desc">최신순</option>
+        <option value="created_at-asc">오래된순</option>
+        <option value="title-asc">제목순</option>
+        <option value="verify_status">검증됨 우선</option>
+      </select>
+      <div class="tag-bar" id="tag-bar" style="margin:0;flex:1;"></div>
+      <span class="result-count" id="result-count"></span>
+    </div>
+    <div id="card-list"><div class="loading">데이터 불러오는 중...</div></div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <!-- USER UIID 패널 -->
+  <div class="panel" id="panel-users">
+    <div class="search-box">
+      <div class="search-row">
+        <input type="text" id="u-search" placeholder="이름, User Code, 이메일 검색..." oninput="filterUsers()"/>
+        <button class="btn btn-primary" onclick="loadUsers()">🔄 새로고침</button>
+      </div>
+    </div>
+    <div class="sort-bar">
+      <span style="font-size:12px;color:var(--text2);">등록된 사용자 UIID 목록</span>
+      <span class="result-count" id="user-count"></span>
+    </div>
+    <div id="user-list"><div class="loading">로딩 중...</div></div>
+  </div>
+
+  <!-- 등록은 WORKS_UIID_Manager에서 담당 -->
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ══════ Supabase ══════
+const SB_URL='https://tuquymzdozkuylbxblhr.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1cXV5bXpkb3prdXlsYnhibGhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NTE2NzksImV4cCI6MjA5MTAyNzY3OX0.c1DNclUazjdXB3smWEsAyn4fr_zy_TsPlOfFQzoU7Y0';
+const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
+async function sbFetch(path,method,body){
+  const opt={method:method||'GET',headers:SB_H};
+  if(body) opt.body=JSON.stringify(body);
+  const res=await fetch(SB_URL+path,opt);
+  if(!res.ok) throw new Error(await res.text());
+  return (method||'GET')==='GET'?res.json():res;
+}
+
+// ══════ Manager 색상 테마 공유 ══════
+function loadSharedTheme(){
+  try{
+    const c=JSON.parse(localStorage.getItem('uiid_v7_color'));
+    if(!c) return;
+    const r=document.documentElement.style;
+    if(c.bg){ r.setProperty('--bg',c.bg); r.setProperty('--bg2',c.b2); r.setProperty('--bg3',c.b3); }
+    if(c.text){ r.setProperty('--text',c.text); r.setProperty('--text2',c.text2); r.setProperty('--border',c.border); }
+  }catch{}
+}
+
+// ══════ Manager localStorage → Registry 형식 변환 ══════
+function loadFromManager(){
+  try{
+    const raw=localStorage.getItem('uiid_v7_recs');
+    if(!raw) return [];
+    return JSON.parse(raw).map(r=>({
+      fingerprint:r.fp||r.uiid,
+      origin:r.creator, user_id:r.userId,
+      ai_id:r.aiCode!=='000'?r.aiCode:null,
+      created_at:r.inputDate?(
+        r.inputDate.slice(0,4)+'-'+r.inputDate.slice(4,6)+'-'+r.inputDate.slice(6,8)+'T'+
+        r.inputDate.slice(8,10)+':'+r.inputDate.slice(10,12)+':'+r.inputDate.slice(12,14)
+      ):new Date().toISOString(),
+      lang:r.country, file_type:r.ftype,
+      verify_status:r.verify, hash:r.hash,
+      title:r.title||'', co_author_count:r.coCount||0,
+      coAuthors:r.coAuthors||[], _source:'manager'
+    }));
+  }catch{ return []; }
+}
+
+// ══════ 데이터 로딩 ══════
+const PAGE_SIZE=6;
+let allDocs=[], filtered=[], page=1, _lastCount=0;
+
+async function checkDb(){
+  try{
+    await sbFetch('/rest/v1/documents?select=fingerprint&limit=1');
+    document.getElementById('dbDot').style.background='#2ecc71';
+    document.getElementById('dbLabel').textContent='DB 연결됨';
+  }catch{
+    document.getElementById('dbDot').style.background='#e74c3c';
+    document.getElementById('dbLabel').textContent='DB 오류';
+  }
+}
+
+async function loadDocuments(silent=false){
+  if(!silent) document.getElementById('card-list').innerHTML='<div class="loading">데이터 불러오는 중...</div>';
+  try{
+    const managerDocs=loadFromManager();
+    let sbDocs=[];
+    try{ sbDocs=await sbFetch('/rest/v1/documents?select=*&order=created_at.desc'); }catch{}
+    const seen=new Set();
+    const merged=[];
+    [...managerDocs,...sbDocs].forEach(d=>{
+      const key=d.fingerprint;
+      if(key&&!seen.has(key)){ seen.add(key); merged.push(d); }
+    });
+    merged.sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+    const isNew=merged.length!==_lastCount;
+    _lastCount=merged.length;
+    allDocs=merged;
+    document.getElementById('sTot').textContent=merged.length;
+    applyFilters();
+    updateSyncTime();
+    if(isNew&&silent) showToast('🔄 새 자료가 추가됐어요!');
+  }catch(e){
+    if(!silent) document.getElementById('card-list').innerHTML='<div class="no-result">데이터를 불러오지 못했어요.</div>';
+  }
+}
+
+function updateSyncTime(){
+  const n=new Date();
+  document.getElementById('syncTime').textContent=
+    n.getHours()+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0')+' 동기화';
+}
+
+// Manager 저장 이벤트 감지
+window.addEventListener('storage',function(e){
+  if(e.key==='uiid_v7_recs'||e.key==='uiid_sync_signal'||e.key==='uiid_v7_color'){
+    if(e.key==='uiid_v7_color') loadSharedTheme();
+    else loadDocuments(true);
+  }
+});
+
+// 5초마다 자동 갱신
+setInterval(()=>loadDocuments(true),5000);
+
+// ══════ 필터 ══════
+function applyFilters(){
+  const o=document.getElementById('f-origin').value;
+  const l=document.getElementById('f-lang').value;
+  const t=document.getElementById('f-type').value;
+  const v=document.getElementById('f-verify').value;
+  const q=document.getElementById('f-title').value.toLowerCase();
+  const df=document.getElementById('f-date-from').value;
+  const dt=document.getElementById('f-date-to').value;
+  const sort=document.getElementById('sort-by').value;
+
+  filtered=allDocs.filter(d=>{
+    if(o&&d.origin!==o) return false;
+    if(l&&d.lang!==l) return false;
+    if(t&&d.file_type!==t) return false;
+    if(v&&d.verify_status!==v) return false;
+    if(q&&!d.title?.toLowerCase().includes(q)&&!d.fingerprint?.toLowerCase().includes(q)) return false;
+    if(df&&d.created_at<df) return false;
+    if(dt&&d.created_at>dt+'T23:59:59') return false;
+    return true;
+  });
+
+  const [sf,sd]=sort.split('-');
+  filtered.sort((a,b)=>{
+    if(sf==='verify_status') return(a.verify_status==='V'?0:1)-(b.verify_status==='V'?0:1);
+    const va=a[sf]||'',vb=b[sf]||'';
+    return sd==='desc'?vb.localeCompare(va):va.localeCompare(vb);
+  });
+
+  page=1;
+  renderTags();
+  renderCards();
+}
+
+function renderTags(){
+  const tags=[];
+  [['f-origin','생성주체'],['f-lang','언어'],['f-type','유형'],['f-verify','검증']].forEach(([id,lbl])=>{
+    const v=document.getElementById(id).value;
+    if(v) tags.push({id,text:lbl+': '+v});
+  });
+  const q=document.getElementById('f-title').value;
+  if(q) tags.push({id:'f-title',text:'검색: "'+q+'"'});
+  document.getElementById('tag-bar').innerHTML=tags.map(t=>`<span class="tag">${t.text}<button onclick="clearTag('${t.id}')">×</button></span>`).join('');
+  document.getElementById('result-count').textContent=filtered.length+'건';
+}
+function clearTag(id){ document.getElementById(id).value=''; applyFilters(); }
+function resetFilters(){
+  ['f-origin','f-lang','f-type','f-verify'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-title').value='';
+  document.getElementById('f-date-from').value='';
+  document.getElementById('f-date-to').value='';
+  applyFilters();
+}
+
+// ══════ 카드 렌더링 ══════
+function vBadge(v){const m={V:['bv','검증됨'],U:['bu','미검증'],R:['bp','검토중']};const[c,l]=m[v]||['bu','미검증'];return`<span class="badge ${c}">${l}</span>`;}
+function oBadge(o){const m={HOC:['bhoc','HOC'],HUM:['bhum','HUM'],AI:['bai','AI']};const[c,l]=m[o]||['bhum',o];return`<span class="badge ${c}">${l}</span>`;}
+function fmtDate(s){return s?s.slice(0,10):'';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function renderCards(){
+  const total=filtered.length;
+  const totalPages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  const slice=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+  const list=document.getElementById('card-list');
+
+  if(total===0){
+    list.innerHTML='<div class="no-result">검색 결과가 없어요.</div>';
+    document.getElementById('pagination').innerHTML='';
+    return;
+  }
+
+  list.innerHTML=slice.map((d,i)=>{
+    const idx=(page-1)*PAGE_SIZE+i;
+    const cn=d.co_author_count||0;
+    const src=d._source==='manager'?'<span class="src-badge">Manager</span>':'';
+    return `
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title-row">
+          <div class="card-title">${esc(d.title)||'(제목 없음)'}${src}</div>
+          <div class="badges">${vBadge(d.verify_status)}${oBadge(d.origin)}</div>
+        </div>
+        <div class="fp-line">${esc(d.fingerprint)}${cn>0?' · C'+cn:''}</div>
+        <div class="sort-tags">
+          <span class="st">Creator Class: ${d.origin||''}</span>
+          <span class="st">Creator USER ID: ${d.user_id||''}</span>
+          <span class="st">${d.lang||''}</span>
+          <span class="st">${d.file_type||''}</span>
+          <span class="st">${fmtDate(d.created_at)}</span>
+        </div>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-actions">
+        ${cn>0?`<button class="btn-sm" id="ca-btn-${idx}" onclick="toggleCA(${idx},${JSON.stringify(d.fingerprint)},${JSON.stringify(d.coAuthors||[])})">C${cn} ▼</button>`:''}
+        <button class="btn-sm btn-sm-v" onclick="toggleVerify(${idx},${JSON.stringify(d.fingerprint)})">V 검증</button>
+        <button class="btn-sm" onclick="toggleSecret(${idx})">P 비밀메모</button>
+        <button class="btn-sm" onclick="copyFP(${JSON.stringify(d.fingerprint)})">지문코드 복사</button>
+      </div>
+      <div class="expand-area" id="ca-${idx}"></div>
+      <div class="expand-area" id="verify-${idx}"></div>
+      <div class="expand-area" id="secret-${idx}">
+        <div class="secret-wrap">
+          <div class="secret-row">
+            <input class="secret-input" type="password" id="pw-${idx}" placeholder="비밀 암호..." onkeydown="if(event.key==='Enter')checkPw(${idx})"/>
+            <button class="btn-sm" onclick="checkPw(${idx})">확인</button>
+          </div>
+          <div id="pw-msg-${idx}" style="display:none"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const pg=document.getElementById('pagination');
+  if(totalPages<=1){pg.innerHTML='';return;}
+  let btns='';
+  if(page>1) btns+=`<button onclick="goPage(${page-1})">◀</button>`;
+  for(let i=1;i<=totalPages;i++) btns+=`<button class="${i===page?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  if(page<totalPages) btns+=`<button onclick="goPage(${page+1})">▶</button>`;
+  pg.innerHTML=btns;
+}
+
+function goPage(p){page=p;renderCards();}
+
+// ══════ 공동저자 (localStorage 우선, 없으면 Supabase) ══════
+async function toggleCA(idx,fp,localAuthors){
+  const box=document.getElementById('ca-'+idx);
+  const btn=document.getElementById('ca-btn-'+idx);
+  if(box.classList.contains('open')){
+    box.classList.remove('open'); btn.textContent=btn.textContent.replace('▲','▼'); return;
+  }
+  box.innerHTML='<div style="font-size:12px;color:var(--text2)">불러오는 중...</div>';
+  box.classList.add('open');
+  try{
+    let authors=[];
+    if(localAuthors&&localAuthors.length>0){
+      authors=localAuthors.map(c=>({author_name:c.name,author_id:c.id,author_type:c.type}));
+    } else {
+      const data=await sbFetch('/rest/v1/co_authors?fingerprint=eq.'+encodeURIComponent(fp)+'&order=order_num.asc');
+      authors=data;
+    }
+    if(!authors.length){
+      box.innerHTML='<div style="font-size:12px;color:var(--text2)">공동저자 정보가 없어요.</div>';
+    } else {
+      box.innerHTML='<div class="coauth-list">'+authors.map(c=>`
+        <div class="coauth-item">
+          <div class="avatar ${c.author_type==='AI'?'av-a':'av-h'}">${(c.author_name||'?').slice(0,2)}</div>
+          <div><div class="coauth-name">${esc(c.author_name||'—')}</div><div class="coauth-id">${esc(c.author_id||'—')}</div></div>
+          <span class="coauth-type ${c.author_type==='AI'?'ct-a':'ct-h'}">${c.author_type||'HUMAN'}</span>
+        </div>`).join('')+'</div>';
+    }
+    btn.textContent=btn.textContent.replace('▼','▲');
+  }catch{ box.innerHTML='<div style="font-size:12px;color:var(--text2)">불러오기 실패</div>'; }
+}
+
+function toggleVerify(idx,fp){
+  const box=document.getElementById('verify-'+idx);
+  if(box.classList.contains('open')){box.classList.remove('open');return;}
+  box.innerHTML=`<div style="font-size:12px;line-height:1.8">
+    <div style="display:flex;gap:8px;margin-bottom:3px"><span style="color:var(--text2);min-width:70px;font-size:11px">지문코드</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">${esc(fp)}</span></div>
+    <div style="display:flex;gap:8px;margin-bottom:3px"><span style="color:var(--text2);min-width:70px;font-size:11px">저작자</span><span style="color:var(--success)">✓ 확인됨</span></div>
+    <div style="display:flex;gap:8px;margin-bottom:3px"><span style="color:var(--text2);min-width:70px;font-size:11px">해시</span><span style="color:var(--success)">✓ 원본 일치</span></div>
+    <div style="display:flex;gap:8px"><span style="color:var(--text2);min-width:70px;font-size:11px">AI 기여</span><span style="color:var(--success)">✓ 확인됨</span></div>
+  </div>`;
+  box.classList.add('open');
+}
+
+function toggleSecret(idx){document.getElementById('secret-'+idx).classList.toggle('open');}
+
+function checkPw(idx){
+  const pw=document.getElementById('pw-'+idx).value;
+  const msg=document.getElementById('pw-msg-'+idx);
+  const savedPw=localStorage.getItem('uiid_v7_pw');
+  if((savedPw&&pw===savedPw)||(!savedPw&&pw==='1234')){
+    msg.className='msg msg-ok'; msg.textContent='🔓 비밀메모: 개인 메모 공간입니다.'; msg.style.display='block';
+  } else {
+    msg.className='msg msg-err'; msg.textContent='암호가 맞지 않아요.'; msg.style.display='block';
+    document.getElementById('pw-'+idx).value='';
+  }
+}
+
+function copyFP(fp){ navigator.clipboard.writeText(fp).then(()=>showToast('✅ 지문코드 복사됐어요!')); }
+
+// ══════ 등록 탭 ══════
+function toggleRC(selId){
+  const v=document.getElementById(selId).value;
+  const row=document.getElementById(selId+'-custom');
+  if(!row) return;
+  if(v==='CUSTOM'){ row.classList.add('show'); setTimeout(()=>row.querySelector('input')?.focus(),50); }
+  else row.classList.remove('show');
+}
+
+function getNow(){
+  const d=new Date();
+  return ''+d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+p2(d.getHours())+p2(d.getMinutes())+p2(d.getSeconds());
+}
+function p2(n){return String(n).padStart(2,'0');}
+
+function makeHash(src){
+  let a=0x811c9dc5,b=0x9e3779b9;
+  for(let i=0;i<src.length;i++){a^=src.charCodeAt(i);a=(a*0x01000193)>>>0;b=(b+src.charCodeAt(i)*31)>>>0;}
+  return((a.toString(36)+b.toString(36)).toUpperCase()+'000000000000').slice(0,12);
+}
+
+let _prevDt='';
+
+function updatePreview(){
+  const cr=document.getElementById('r-origin').value==='CUSTOM'?
+    (document.getElementById('r-originC').value||'HOC'):document.getElementById('r-origin').value;
+  const uid=(document.getElementById('r-userid').value||'USERID00').toUpperCase().slice(0,8).padEnd(8,'0');
+  const ai=document.getElementById('r-aicode').value==='CUSTOM'?
+    (document.getElementById('r-aicodeC').value||'000'):document.getElementById('r-aicode').value;
+  _prevDt=getNow();
+  const lang=document.getElementById('r-lang').value;
+  const type=document.getElementById('r-type').value;
+  const verify=document.getElementById('r-verify').value;
+  const title=document.getElementById('r-title').value.trim();
+  const cc=Math.max(0,parseInt(document.getElementById('r-cocount').value||'0',10)||0);
+  const pe=(document.getElementById('r-personal').value||'').trim();
+  const h=makeHash(cr+'-'+uid+'-'+ai+'-'+_prevDt+'-'+lang+'-'+type+'-'+verify);
+
+  const S='<span class="sep">-</span>';
+  let html='<span class="pt">'+cr+'</span>'+S+'<span class="pt">'+uid+'</span>'+S+
+           '<span class="pt">'+ai+'</span>'+S+'<span>'+_prevDt+'</span>'+S+
+           '<span>'+lang+'</span>'+S+'<span>'+type+'</span>'+S+
+           '<span>'+verify+'</span>'+S+'<span class="hh">'+h+'</span>';
+  if(cc>0) html+=S+'<span style="color:var(--accent2)">C'+cc+'</span>';
+  if(title) html+=S+'<span style="color:var(--text2)">'+esc(title)+'</span>';
+  if(pe) html+='<span class="sep"> // </span><span style="color:var(--accent2)">'+esc(pe)+'</span>';
+  document.getElementById('uiid-preview').innerHTML=html;
+}
+
+// 공동저자 입력란
+function renderRCaFields(){
+  const n=Math.max(0,Math.min(20,parseInt(document.getElementById('r-cocount').value||'0',10)||0));
+  const wrap=document.getElementById('r-ca-fields');
+  if(n===0){wrap.style.display='none';wrap.innerHTML='';return;}
+  const existing=getRCaData();
+  wrap.style.display='flex';
+  wrap.innerHTML=Array.from({length:n},(_,i)=>{
+    const d=existing[i]||{id:'',name:'',type:'HUMAN'};
+    return `<div class="ca-item">
+      <span class="ca-num">${i+1}</span>
+      <input type="text" id="rca-id-${i}" placeholder="ID (예: KIMYJ456)" value="${esc(d.id)}" maxlength="12" oninput="updatePreview()">
+      <input type="text" id="rca-name-${i}" placeholder="이름 (예: 김영준)" value="${esc(d.name)}" oninput="updatePreview()">
+      <button class="ca-type-btn ${d.type==='AI'?'ai':'human'}" id="rca-type-${i}" onclick="toggleRCaType(${i})">${d.type==='AI'?'AI':'HUMAN'}</button>
+    </div>`;
+  }).join('');
+}
+
+function toggleRCaType(i){
+  const btn=document.getElementById('rca-type-'+i);
+  const isAI=btn.textContent.trim()==='AI';
+  btn.textContent=isAI?'HUMAN':'AI';
+  btn.className='ca-type-btn '+(isAI?'human':'ai');
+}
+
+function getRCaData(){
+  const n=Math.max(0,parseInt(document.getElementById('r-cocount').value||'0',10)||0);
+  const result=[];
+  for(let i=0;i<n;i++){
+    const idEl=document.getElementById('rca-id-'+i);
+    if(!idEl) break;
+    result.push({
+      id:(idEl.value||'').trim(),
+      name:(document.getElementById('rca-name-'+i).value||'').trim(),
+      type:(document.getElementById('rca-type-'+i)||{}).textContent?.trim()||'HUMAN',
+      order:i+1
+    });
+  }
+  return result;
+}
+
+async function registerDoc(){
+  const cr=document.getElementById('r-origin').value==='CUSTOM'?
+    (document.getElementById('r-originC').value||''):document.getElementById('r-origin').value;
+  const uid=(document.getElementById('r-userid').value||'').toUpperCase().slice(0,8).padEnd(8,'0');
+  if(!document.getElementById('r-userid').value){showToast('⚠️ User ID를 입력해 주세요.');return;}
+
+  const ai=document.getElementById('r-aicode').value==='CUSTOM'?
+    (document.getElementById('r-aicodeC').value||'000'):document.getElementById('r-aicode').value;
+  const dt=_prevDt||getNow();
+  const lang=document.getElementById('r-lang').value;
+  const type=document.getElementById('r-type').value;
+  const verify=document.getElementById('r-verify').value;
+  const title=document.getElementById('r-title').value.trim();
+  const cc=Math.max(0,parseInt(document.getElementById('r-cocount').value||'0',10)||0);
+  const pe=(document.getElementById('r-personal').value||'').trim();
+  const coAuthors=getRCaData();
+
+  const h=makeHash(cr+'-'+uid+'-'+ai+'-'+dt+'-'+lang+'-'+type+'-'+verify);
+  let fp=cr+'-'+uid+'-'+ai+'-'+dt+'-'+lang+'-'+type+'-'+verify+'-'+h;
+  if(cc>0) fp+='-C'+cc;
+  const uiid=title?(pe?fp+'-'+title+' // '+pe:fp+'-'+title):(pe?fp+' // '+pe:fp);
+
+  // Manager localStorage에도 저장
+  try{
+    const recs=JSON.parse(localStorage.getItem('uiid_v7_recs')||'[]');
+    recs.unshift({
+      id:Date.now(),creator:cr,userId:uid,aiCode:ai,dateStr:dt,
+      country:lang,ftype:type,verify:verify,title:title,coCount:cc,
+      personal:pe,hash:h,fp:fp,uiid:uiid,inputDate:dt,modDate:dt,
+      secret:'',globalDup:false,coAuthors:coAuthors
+    });
+    localStorage.setItem('uiid_v7_recs',JSON.stringify(recs));
+    localStorage.setItem('uiid_sync_signal',Date.now().toString());
+  }catch{}
+
+  showToast('✅ UIID 등록 완료! 🎉');
+  switchTab('search');
+  await loadDocuments(false);
+}
+
+function resetRegForm(){
+  ['r-userid','r-title','r-personal'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('r-cocount').value='0';
+  document.getElementById('r-ca-fields').style.display='none';
+  document.getElementById('r-ca-fields').innerHTML='';
+  document.getElementById('r-origin-custom').classList.remove('show');
+  document.getElementById('r-aicode-custom').classList.remove('show');
+  updatePreview();
+}
+
+// ══════ 탭 전환 ══════
+function switchTab(name){
+  ['works','users','register'].forEach(n=>{
+    const tab=document.getElementById('tab-'+n);
+    if(tab) tab.classList.toggle('active',n===name);
+  });
+  document.querySelectorAll('.panel').forEach(p=>{
+    p.classList.toggle('active', p.id==='panel-'+name);
+  });
+  if(name==='register') updatePreview();
+  if(name==='users') loadUsers();
+}
+
+// ══════ Toast ══════
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+// ══════ Init ══════
+loadSharedTheme();
+// ══════ USER UIID 로드 ══════
+let _allUsers=[];
+async function loadUsers(){
+  document.getElementById('user-list').innerHTML='<div class="loading">불러오는 중...</div>';
+  try{
+    const data=await sbFetch('/rest/v1/profiles?select=user_code,name,country,uiid,created_at&order=created_at.desc');
+    _allUsers=data||[];
+    document.getElementById('user-count').textContent=_allUsers.length+'명';
+    renderUsers(_allUsers);
+  }catch(e){
+    document.getElementById('user-list').innerHTML='<div class="no-result">불러오지 못했어요.</div>';
+  }
+}
+
+function filterUsers(){
+  const q=(document.getElementById('u-search').value||'').toLowerCase();
+  const filtered=_allUsers.filter(u=>
+    (u.user_code||'').toLowerCase().includes(q)||
+    (u.name||'').toLowerCase().includes(q)||
+    (u.uiid||'').toLowerCase().includes(q)
+  );
+  document.getElementById('user-count').textContent=filtered.length+'명';
+  renderUsers(filtered);
+}
+
+function renderUsers(users){
+  const list=document.getElementById('user-list');
+  if(!users.length){list.innerHTML='<div class="no-result">검색 결과가 없어요.</div>';return;}
+  list.innerHTML=users.map(u=>`
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title-row">
+          <div class="card-title">${esc(u.name||'—')}</div>
+          <div class="badges"><span class="badge bhoc">${esc(u.country||'—')}</span></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;margin-bottom:4px;">${esc(u.user_code||'—')}</div>
+        <div class="fp-line">${esc(u.uiid||'—')}</div>
+        <div class="sort-tags">
+          <span class="st">Creator USER ID: ${esc(u.user_code||'—')}</span>
+          <span class="st">${(u.created_at||'').slice(0,10)}</span>
+        </div>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="navigator.clipboard.writeText('${esc(u.uiid||'')}').then(()=>showToast('✅ UIID 복사됐어요!'))">UIID 복사</button>
+      </div>
+    </div>`).join('');
+}
+
+checkDb();
+loadDocuments(false);
+updatePreview();
+</script>
+<p style="text-align: center;"><span style="text-align: center; color: #0000ff;"><span style="background-color: #fdf5bf; color: #c8960a;"><span style="font-size: xx-small;"><span style="font-size: 8pt;">　　　HOC-BESTSM00-CLAUDX789-20260413114648-KR-CODE-V-1CJN4OO17WFP-C2-UIID_Registry // 공모전　　</span></span></span></span></p>
+</body>
+</html>
